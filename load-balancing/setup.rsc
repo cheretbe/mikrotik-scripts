@@ -27,24 +27,19 @@
 :local defaultRoute1
 :local defaultRoute2
 
-# TODO: try to optimize search with :foreach route in=[/ip route find where dst-address="0.0.0.0/0"]
-:foreach route in=[/ip route find] do={
+:foreach route in=[/ip route find dst-address="0.0.0.0/0" && (!(comment~"autoconf: ")) && disabled=no] do={
   :local routeDst [/ip route get $route dst-address]
   :local routeGw [/ip route get $route gateway]
   :local routeDistance [/ip route get $route distance]
   :local routeComment [/ip route get $route comment]
   :local routeIsEnabled (![/ip route get $route disabled])
-  :if ((!($routeComment~"autoconf: ")) and $routeIsEnabled) do={
-    :if ($routeDst = "0.0.0.0/0") do={
-      :if ([:typeof $defaultRoute1] = "nothing") do={
-        :set defaultRoute1 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
-      } else={
-        :if ([:typeof $defaultRoute2] = "nothing") do={
-          :set defaultRoute2 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
-        } else={
-          $ExitWithError errorMessage="More than 2 initial default routes are present"
-        }
-      }
+  :if ([:typeof $defaultRoute1] = "nothing") do={
+    :set defaultRoute1 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
+  } else={
+    :if ([:typeof $defaultRoute2] = "nothing") do={
+      :set defaultRoute2 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
+    } else={
+      $ExitWithError errorMessage="More than 2 initial default routes are present"
     }
   }
 }
