@@ -11,6 +11,11 @@ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 vagrant@172.28.128.4 "/import setup.rsc"
 ```
 
+Windows
+```batch
+scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key load-balancing/setup.rsc vagrant@172.28.128.3:/ && ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key vagrant@172.28.128.3 "/import setup.rsc"
+```
+
 ```
 /queue simple add max-limit=7M/7M name=queue1 target=wan1
 ```
