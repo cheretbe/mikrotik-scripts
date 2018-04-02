@@ -1,6 +1,3 @@
-#:put "Press any key"
-#:put [/terminal inkey ]
-
 :local ExitWithError do={
   :put ("[ERROR]: $errorMessage")
   :error ("Load-balancing setup script has been aborted")
@@ -22,6 +19,20 @@
   $ExitWithError errorMessage="For this script to run two interfaces named 'wan1' and 'wan2' have to be present"
 }
 
+:local lanInterface ""
+:if ([:len [/interface find name="lan"]] != 0) do={
+  :set lanInterface "lan"
+} else={
+  :if ([:len [/interface find name="lan-bridge"]] != 0) do={
+    :set lanInterface "lan-bridge"
+  }
+}
+
+if ($lanInterface = "") do={
+  $ExitWithError errorMessage="For this script to run an interface named 'lan' or bridge named 'lan-brigde' has to be present"
+}
+:put ("LAN interface name: " . $lanInterface)
+
 :put "Detecting routes..."
 
 :local defaultRoute1
@@ -31,8 +42,8 @@
   :local routeDst [/ip route get $route dst-address]
   :local routeGw [/ip route get $route gateway]
   :local routeDistance [/ip route get $route distance]
-  :local routeComment [/ip route get $route comment]
-  :local routeIsEnabled (![/ip route get $route disabled])
+  #:local routeComment [/ip route get $route comment]
+  #:local routeIsEnabled (![/ip route get $route disabled])
   :if ([:typeof $defaultRoute1] = "nothing") do={
     :set defaultRoute1 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
   } else={
@@ -61,17 +72,44 @@
 :put ("'wan2' default route: " . [:tostr $wan2defaultRoute])
 
 
-/ip firewall mangle
-add action=mark-connection chain=input comment="autoconf: Mark wan1 input (old)" in-interface=wan1 new-connection-mark="wan1"
-
-/ip firewall mangle print
-
 :if ([:len [/ip firewall mangle find comment~"autoconf: "]] != 0) do={
-  :put "Removing existing mangle rules..."
+  :put "Removing existing autoconf mangle rules..."
   /ip firewall mangle remove [find comment~"autoconf: "]
 }
 
 :put "Adding mangle rules..."
 /ip firewall mangle
-add action=mark-connection chain=input  in-interface=wan1 new-connection-mark="input-wan1" \
+# Mark coming IN connections
+add action=mark-connection chain=input in-interface=wan1 new-connection-mark="input-wan1" \
   comment="autoconf: Mark wan1 input"
+add action=mark-connection chain=input in-interface=wan2 new-connection-mark="input-wan2" \
+  comment="autoconf: Mark wan2 input"
+# Mark OUT connections to force connections that originated from one interface
+# to be routed through this same interface
+add action=mark-routing chain=output connection-mark="input-wan1" new-routing-mark="force-wan1" \
+  comment="autoconf: Force wan1 output"
+add action=mark-routing chain=output connection-mark="input-wan2" new-routing-mark="force-wan2" \
+  comment="autoconf: Force wan2 output"
+# Actual load balancing
+add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2-0" \
+    dst-address-type=!local in-interface=$lanInterface new-routing-mark=\
+    "force-wan1" passthrough=yes per-connection-classifier=\
+    both-addresses-and-ports:2/0
+add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2-1" \
+    dst-address-type=!local in-interface=$lanInterface new-routing-mark=\
+    "force-wan2" passthrough=yes per-connection-classifier=\
+    both-addresses-and-ports:2/1
+
+:if ([:len [/ip route find comment~"autoconf: "]] != 0) do={
+  :put "Removing existing autoconf routes..."
+  /ip route remove [find comment~"autoconf: "]
+}
+
+:put "Adding routes..."
+/ip route
+add distance=1 gateway=($wan1defaultRoute->"gw") routing-mark="force-wan1" \
+  comment="autoconf: Force wan1 output"
+add distance=1 gateway=($wan2defaultRoute->"gw") routing-mark="force-wan2" \
+  comment="autoconf: Force wan2 output"
+
+:put "[OK] Load balancing setup has finished"
