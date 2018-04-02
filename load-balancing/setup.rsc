@@ -81,15 +81,15 @@ if ($lanInterface = "") do={
 /ip firewall mangle
 # Mark coming IN connections
 add action=mark-connection chain=input in-interface=wan1 new-connection-mark="input-wan1" \
-  comment="autoconf: Mark wan1 input"
+  passthrough=no comment="autoconf: Mark wan1 input"
 add action=mark-connection chain=input in-interface=wan2 new-connection-mark="input-wan2" \
-  comment="autoconf: Mark wan2 input"
+  passthrough=no comment="autoconf: Mark wan2 input"
 # Mark OUT connections to force connections that originated from one interface
 # to be routed through this same interface
 add action=mark-routing chain=output connection-mark="input-wan1" new-routing-mark="force-wan1" \
-  comment="autoconf: Force wan1 output"
+  passthrough=no comment="autoconf: Force wan1 output"
 add action=mark-routing chain=output connection-mark="input-wan2" new-routing-mark="force-wan2" \
-  comment="autoconf: Force wan2 output"
+  passthrough=no comment="autoconf: Force wan2 output"
 # Actual load balancing
 add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2-0" \
     dst-address-type=!local in-interface=$lanInterface new-routing-mark=\
