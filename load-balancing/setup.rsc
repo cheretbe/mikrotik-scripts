@@ -90,6 +90,23 @@ add action=mark-routing chain=output connection-mark="input-wan1" new-routing-ma
   passthrough=no comment="autoconf: Force wan1 output"
 add action=mark-routing chain=output connection-mark="input-wan2" new-routing-mark="force-wan2" \
   passthrough=no comment="autoconf: Force wan2 output"
+
+add action=mark-connection chain=forward connection-state=new \
+  in-interface=wan1 new-connection-mark="fw-wan1" passthrough=no \
+  comment="autoconf: Mark wan1 forwarded connections"
+add action=mark-connection chain=forward connection-state=new \
+  in-interface=wan2 new-connection-mark="fw-wan2" passthrough=no \
+  comment="autoconf: Mark wan2 forwarded connections"
+
+# in-interface=lan-bridge
+add action=mark-routing chain=prerouting connection-mark="fw-wan1" \
+  new-routing-mark="force-wan1" passthrough=no \
+  comment= "autoconf: Force connections originated from WAN1 to be routed through WAN1"
+
+add action=mark-routing chain=prerouting connection-mark="fw-wan2" \
+  new-routing-mark="force-wan2" passthrough=no \
+  comment= "autoconf: Force connections originated from WAN2 to be routed through WAN2"
+
 # Actual load balancing
 add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2-0" \
     dst-address-type=!local in-interface=$lanInterface new-routing-mark=\
