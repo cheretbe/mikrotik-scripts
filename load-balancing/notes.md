@@ -3,6 +3,9 @@
 * https://wiki.mikrotik.com/wiki/How_PCC_works_(beginner)
 
 ```shell
+vagrant ssh-config mt_router > /tmp/ssh-mt_router
+
+
 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 -i /mnt/data/vagrant-home/insecure_private_key \
 load-balancing/setup.rsc vagrant@172.28.128.4:/ && \
@@ -18,4 +21,15 @@ scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%
 
 ```
 /queue simple add max-limit=7M/7M name=queue1 target=wan1
+```
+
+```shell
+vagrant ssh-config remote_server > ~/temp/ssh-config
+scp -F ~/temp/ssh-config .vagrant/machines/client/virtualbox/private_key vagrant@remote_server:
+```
+```
+/interface list add name=wan1+wan2
+/interface list member add interface=wan1 list=wan1+wan2
+/interface list member add interface=wan2 list=wan1+wan2
+/ip firewall nat add action=dst-nat chain=dstnat dst-port=2222 in-interface-list=wan1+wan2 protocol=tcp to-addresses=172.25.0.10 to-ports=22
 ```
