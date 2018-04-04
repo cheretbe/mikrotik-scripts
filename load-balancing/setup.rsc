@@ -42,8 +42,6 @@ if ($lanInterface = "") do={
   :local routeDst [/ip route get $route dst-address]
   :local routeGw [/ip route get $route gateway]
   :local routeDistance [/ip route get $route distance]
-  #:local routeComment [/ip route get $route comment]
-  #:local routeIsEnabled (![/ip route get $route disabled])
   :if ([:typeof $defaultRoute1] = "nothing") do={
     :set defaultRoute1 { "dst"=$routeDst; "gw"=$routeGw; "distance"=$routeDistance }
   } else={
@@ -79,33 +77,32 @@ if ($lanInterface = "") do={
 
 :put "Adding mangle rules..."
 /ip firewall mangle
-# Mark coming IN connections
+# Mark INPUT connections
 add action=mark-connection chain=input in-interface=wan1 new-connection-mark="input-wan1" \
   passthrough=no comment="autoconf: Mark wan1 input"
 add action=mark-connection chain=input in-interface=wan2 new-connection-mark="input-wan2" \
   passthrough=no comment="autoconf: Mark wan2 input"
-# Mark OUT connections to force connections that originated from one interface
-# to be routed through this same interface
+# Apply routing marks to OUTPUT connections that originated from one interface
+# to be routed through that same interface
 add action=mark-routing chain=output connection-mark="input-wan1" new-routing-mark="force-wan1" \
-  passthrough=no comment="autoconf: Force wan1 output"
+  passthrough=no comment="autoconf: Force output connections originated from wan1 to be routed through wan1"
 add action=mark-routing chain=output connection-mark="input-wan2" new-routing-mark="force-wan2" \
-  passthrough=no comment="autoconf: Force wan2 output"
-
+  passthrough=no comment="autoconf: Force output connections originated from wan2 to be routed through wan2"
+# Mark FORWARDED connections
 add action=mark-connection chain=forward connection-state=new \
   in-interface=wan1 new-connection-mark="fw-wan1" passthrough=no \
   comment="autoconf: Mark wan1 forwarded connections"
 add action=mark-connection chain=forward connection-state=new \
   in-interface=wan2 new-connection-mark="fw-wan2" passthrough=no \
   comment="autoconf: Mark wan2 forwarded connections"
-
-# in-interface=lan-bridge
+# Apply routing marks to FORWARDED connections that originated from one interface
+# to be routed back through that same interface
 add action=mark-routing chain=prerouting connection-mark="fw-wan1" \
-  new-routing-mark="force-wan1" passthrough=no \
-  comment= "autoconf: Force connections originated from WAN1 to be routed through WAN1"
-
+  in-interface=$lanInterface new-routing-mark="force-wan1" passthrough=no \
+  comment= "autoconf: Force forwarded connections originated from wan1 to be routed through wan1"
 add action=mark-routing chain=prerouting connection-mark="fw-wan2" \
-  new-routing-mark="force-wan2" passthrough=no \
-  comment= "autoconf: Force connections originated from WAN2 to be routed through WAN2"
+  in-interface=$lanInterface new-routing-mark="force-wan2" passthrough=no \
+  comment= "autoconf: Force forwarded connections originated from wan2 to be routed through wan2"
 
 # Actual load balancing
 add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2-0" \
