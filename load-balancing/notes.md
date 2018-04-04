@@ -4,14 +4,15 @@
 
 ```shell
 vagrant ssh-config mt_router > /tmp/ssh-mt_router
+# cd to project
+scp -F /tmp/ssh-mt_router load-balancing/setup.rsc mt_router: && ssh -F /tmp/ssh-mt_router mt_router "/import setup.rsc"
 
-
-scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i /mnt/data/vagrant-home/insecure_private_key \
-load-balancing/setup.rsc vagrant@172.28.128.4:/ && \
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i /mnt/data/vagrant-home/insecure_private_key \
-vagrant@172.28.128.4 "/import setup.rsc"
+#scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+#-i /mnt/data/vagrant-home/insecure_private_key \
+#load-balancing/setup.rsc vagrant@172.28.128.4:/ && \
+#ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+#-i /mnt/data/vagrant-home/insecure_private_key \
+#vagrant@172.28.128.4 "/import setup.rsc"
 ```
 
 Windows
