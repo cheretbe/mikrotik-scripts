@@ -34,3 +34,6 @@ scp -F ~/temp/ssh-config .vagrant/machines/client/virtualbox/private_key vagrant
 /interface list member add interface=wan2 list=wan1+wan2
 /ip firewall nat add action=dst-nat chain=dstnat dst-port=2222 in-interface-list=wan1+wan2 protocol=tcp to-addresses=172.25.0.10 to-ports=22
 ```
+```shell
+iptables -A FORWARD -p udp -m udp --dport 53 ! --source 192.168.51.0/24 --destination 8.8.8.8 -j DROP
+```
