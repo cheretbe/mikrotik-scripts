@@ -129,6 +129,10 @@ add action=mark-routing chain=prerouting comment="autoconf: LAN load balancing 2
     "force-wan2" passthrough=yes per-connection-classifier=\
     both-addresses-and-ports:2/1
 
+:foreach rule in=[/ip firewall mangle find comment~"autoconf: "] do={
+  :put ("  " . [/ip firewall mangle get $rule comment] )
+}
+
 :if ([:len [/ip route find comment~"autoconf: "]] != 0) do={
   :put "Removing existing autoconf routes..."
   /ip route remove [find comment~"autoconf: "]
@@ -140,5 +144,9 @@ add distance=1 gateway=($wan1defaultRoute->"gw") routing-mark="force-wan1" \
   comment="autoconf: Force wan1 output"
 add distance=1 gateway=($wan2defaultRoute->"gw") routing-mark="force-wan2" \
   comment="autoconf: Force wan2 output"
+
+:foreach route in=[/ip route find comment~"autoconf: "] do={
+  :put ("  " . [/ip route get $route comment] )
+}
 
 :put "[OK] Load balancing setup has finished"
