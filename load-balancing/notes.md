@@ -4,7 +4,7 @@
 
 ```shell
 vagrant ssh-config mt_router > /tmp/ssh-mt_router
-# cd to project
+# cd to the project
 scp -F /tmp/ssh-mt_router load-balancing/setup.rsc mt_router: && ssh -F /tmp/ssh-mt_router mt_router "/import setup.rsc"
 
 #scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
@@ -17,7 +17,11 @@ scp -F /tmp/ssh-mt_router load-balancing/setup.rsc mt_router: && ssh -F /tmp/ssh
 
 Windows
 ```batch
-scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key load-balancing/setup.rsc vagrant@172.28.128.3:/ && ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key vagrant@172.28.128.3 "/import setup.rsc"
+vagrant ssh-config mt_router > c:\temp\2del\ssh-mt_router
+:: cd to the project
+ scp -F c:\temp\2del\ssh-mt_router load-balancing/setup.rsc mt_router: && ssh -F c:\temp\2del\ssh-mt_router mt_router "/import setup.rsc"
+
+:: scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key load-balancing/setup.rsc vagrant@172.28.128.3:/ && ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %USERPROFILE%\.vagrant.d\insecure_private_key vagrant@172.28.128.3 "/import setup.rsc"
 ```
 
 ```
