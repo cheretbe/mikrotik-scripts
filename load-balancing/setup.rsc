@@ -6,14 +6,14 @@
 :put "Detecting network interfaces..."
 
 :if ([:len [/interface find name="wan1"]] != 0) do={
-  :put "'wan1' interface is present"
+  :put "  'wan1' interface is present"
 } else {
   :put "Could not find 'wan1' interface"
   $ExitWithError errorMessage="For this script to run two interfaces named 'wan1' and 'wan2' have to be present"
 }
 
 :if ([:len [/interface find name="wan2"]] != 0) do={
-  :put "'wan2' interface is present"
+  :put "  'wan2' interface is present"
 } else {
   :put "Could not find 'wan2' interface"
   $ExitWithError errorMessage="For this script to run two interfaces named 'wan1' and 'wan2' have to be present"
@@ -31,7 +31,7 @@
 if ($lanInterface = "") do={
   $ExitWithError errorMessage="For this script to run an interface named 'lan' or bridge named 'lan-brigde' has to be present"
 }
-:put ("LAN interface name: " . $lanInterface)
+:put ("  LAN interface name: " . $lanInterface)
 
 :put "Detecting routes..."
 
@@ -66,9 +66,24 @@ if ($lanInterface = "") do={
 :if (([:typeof $defaultRoute1] = "nothing") or ([:typeof $defaultRoute2] = "nothing")) do={
   $ExitWithError errorMessage="Could not find 2 initial default routes"
 }
-:put ("'wan1' default route: " . [:tostr $wan1defaultRoute])
-:put ("'wan2' default route: " . [:tostr $wan2defaultRoute])
+:put ("  'wan1' default route: " . [:tostr $wan1defaultRoute])
+:put ("  'wan2' default route: " . [:tostr $wan2defaultRoute])
 
+:put "Backing up current configuration..."
+
+# [/system clock get date] returns string that contains forward slashes and
+# cannot be used in a file name as is (e.g. "apr/05/2018"). We extract day,
+# month and year elements and build backup name in the following format:
+# autoconf_yyyy-mmm-dd_hh:nn:ss
+:local backupDate [/system clock get date]
+:local backupName ("autoconf_" .  \
+  [:pick $backupDate 7 11] . "-" . [:pick $backupDate 0 3] . "-" . [:pick $backupDate 4 6] .  \
+  "_"  . [/system clock get time])
+
+:put ("  ". $backupName . ".rsc")
+/export compact file=$backupName
+:put ("  ". $backupName . ".backup")
+/system backup save name=$backupName
 
 :if ([:len [/ip firewall mangle find comment~"autoconf: "]] != 0) do={
   :put "Removing existing autoconf mangle rules..."
