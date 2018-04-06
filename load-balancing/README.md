@@ -1,3 +1,10 @@
+#### Installation
+```
+/tool fetch url="https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/master/load-balancing/setup.rsc" keep-result=yes dst-path="setup.rsc"
+/import setup.rsc
+/file remove setup.rsc
+```
+
 #### Tracing routes
 
 When using both connections and ports for PCC it is not guaranteed that traceroute
