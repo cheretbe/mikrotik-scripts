@@ -37,9 +37,14 @@ if [ -z ${AO_MT_VAGRANT_CONFIG+x} ]; then
   echo "Creating temporary OpenSSH configuration file"
   AO_MT_VAGRANT_CONFIG=$(mktemp)
   echo "Configuration file path: ${AO_MT_VAGRANT_CONFIG}"
-  vagrant ssh-config > ${AO_MT_VAGRANT_CONFIG}
+  vagrant ssh-config ${AO_MT_VAGRANT_VM} > ${AO_MT_VAGRANT_CONFIG}
   export AO_MT_VAGRANT_CONFIG
 fi
 
-echo "Uploading Vagrantfile"
-scp -F ${AO_MT_VAGRANT_CONFIG} Vagrantfile default:
+project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)
+
+echo "Uploading failover_check.rsc"
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRANT_VM}:
+
+echo "Uploading failover_settings.rsc"
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_settings.rsc" ${AO_MT_VAGRANT_VM}:
