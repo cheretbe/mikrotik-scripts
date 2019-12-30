@@ -48,3 +48,6 @@ scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRA
 
 echo "Uploading failover_settings.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_settings.rsc" ${AO_MT_VAGRANT_VM}:
+
+echo "Uploading setup.rsc"
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/setup.rsc" ${AO_MT_VAGRANT_VM}:

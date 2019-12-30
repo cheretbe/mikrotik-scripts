@@ -106,7 +106,8 @@ do {
 #  :global failoverwan2IsUp true
 
   if (($failoverwan1IsUp != $failoverWan1PrevState) || ($failoverwan2IsUp != $failoverWan2PrevState)) do={
-    $LogDebugMsg debugMsg=("!!!!!!! there you go")
+    $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
+    /system script run failover_on_up_down
   }
   :set failoverWan1PrevState $failoverwan1IsUp
   :set failoverWan2PrevState $failoverwan2IsUp
