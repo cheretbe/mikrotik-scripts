@@ -21,7 +21,8 @@
   :global failoverMinPingReplies
   :global failoverPingTimeout
 
-  $LogDebugMsg debugMsg=("Pinging $pingTarget (threshold: $failoverMinPingReplies/$failoverPingTries; src-address: $pingSrcAddress; timeout: $failoverPingTimeout)")
+  $LogDebugMsg debugMsg=("Pinging $pingTarget (threshold: $failoverMinPingReplies/$failoverPingTries; " . \
+    "src-address: $pingSrcAddress; timeout: $failoverPingTimeout)")
   :local pingCount 0;
   :local pingReplies 0;
   :do {
@@ -51,7 +52,8 @@
   }
 
   :local totalHosts ([:len $failoverPingTargets])
-  $LogDebugMsg debugMsg=("$routeName test results [failed/threshold/total]: $failedHosts/$failoverMaxFailedHosts/$totalHosts")
+  $LogDebugMsg debugMsg=("$routeName test results [failed/threshold/total]: " . \
+    "$failedHosts/$failoverMaxFailedHosts/$totalHosts")
   if ($failedHosts >= $failoverMaxFailedHosts) do={
     $LogInfoMsg infoMsg=("No ping on $routeName to host(s) " . $failedHostsStr)
   }
@@ -100,14 +102,20 @@ do {
   $LogDebugMsg debugMsg=("wan1Distance: $wan1Distance; wan2Distance: $wan2Distance; wan1IsActive: $wan1IsActive")
 
 
-  :global failoverwan1IsUp [$checkAllTargets routeName="wan1" pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
+  :global failoverwan1IsUp [$checkAllTargets routeName="wan1" \
+    pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg \
+    LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan1IsUp true
-  :global failoverwan2IsUp [$checkAllTargets routeName="wan2" pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
+  :global failoverwan2IsUp [$checkAllTargets routeName="wan2" \
+    pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg \
+    LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan2IsUp true
 
   if (($failoverwan1IsUp != $failoverWan1PrevState) || ($failoverwan2IsUp != $failoverWan2PrevState)) do={
-    $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
-    /system script run failover_on_up_down
+    if ([:len [/system script find name=failover_on_up_down]] != 0) do={
+      $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
+      /system script run failover_on_up_down
+    }
   }
   :set failoverWan1PrevState $failoverwan1IsUp
   :set failoverWan2PrevState $failoverwan2IsUp
