@@ -19,16 +19,15 @@
 :local doPing do={
   :global failoverPingTries
   :global failoverMinPingReplies
-  :global failoverPingTimeout
 
   $LogDebugMsg debugMsg=("Pinging $pingTarget (threshold: $failoverMinPingReplies/$failoverPingTries; " . \
-    "src-address: $pingSrcAddress; timeout: $failoverPingTimeout)")
+    "src-address: $pingSrcAddress; timeout: $pingTimeout)")
   :local pingCount 0;
   :local pingReplies 0;
   :do {
-    # Don't flood ping
+    # Delay so we don't flood ping (check if we need this at all)
     if ($pingCount != 0) do={ :delay 100ms }
-    :set pingReplies ($pingReplies + [/ping $pingTarget count=1 src-address=$pingSrcAddress interval=$failoverPingTimeout]);
+    :set pingReplies ($pingReplies + [/ping $pingTarget count=1 src-address=$pingSrcAddress interval=$pingTimeout]);
     :set pingCount ($pingCount + 1);
   } while=($pingCount < $failoverPingTries)
   :local pingIsOk ($pingReplies >= $failoverMinPingReplies)
@@ -44,7 +43,7 @@
   :local failedHosts 0 
   :local failedHostsStr ""
   :foreach pingTarget in=$failoverPingTargets do={
-    if (![$doPing pingTarget=$pingTarget pingSrcAddress=$pingSrcAddress LogDebugMsg=$LogDebugMsg]) do={
+    if (![$doPing pingTarget=$pingTarget pingSrcAddress=$pingSrcAddress pingTimeout=$pingTimeout LogDebugMsg=$LogDebugMsg]) do={
       :set failedHosts ($failedHosts + 1)
       if ($failedHostsStr != "") do={ :set $failedHostsStr ($failedHostsStr . ", ") }
       :set failedHostsStr ($failedHostsStr . $pingTarget)
@@ -78,6 +77,8 @@ do {
   :global failoverWan1DefaultRoute
   :global failoverWan2DefaultRoute
   :global failoverPingTargets
+  :global failoverWan1PingTimeout
+  :global failoverWan2PingTimeout
 
   if ($failoverSwitchRoutes) do={
     if ([:len $failoverWan1DefaultRoute] != 1) do={
@@ -87,10 +88,13 @@ do {
       $ExitWithError errorMsg=("Invalid failoverWan2DefaultRoute value (len=".[:len $failoverWan2DefaultRoute].")")
     }
   }
+# Default values for settings that weren't defined explicitly
+  if ([:typeof $failoverWan1PingTimeout] = "nothing") do={ :set failoverWan1PingTimeout (:totime 00:00:00.500) }
+  if ([:typeof $failoverWan2PingTimeout] = "nothing") do={ :set failoverWan2PingTimeout (:totime 00:00:00.500) }
 
 # WAN1 interface previous state
   :global failoverWan1PrevState
-  if ([:typeof $failoverWan1PrevState] = "nothing") do={ :set failoverWan1PrevState true}
+  if ([:typeof $failoverWan1PrevState] = "nothing") do={ :set failoverWan1PrevState true }
 # WAN2 interface previous state
   :global failoverWan2PrevState
   if ([:typeof $failoverWan2PrevState] = "nothing") do={ :set failoverWan2PrevState true }
@@ -103,12 +107,12 @@ do {
 
 
   :global failoverwan1IsUp [$checkAllTargets routeName="wan1" \
-    pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg \
-    LogInfoMsg=$LogInfoMsg]
+    pingSrcAddress="192.168.154.1" pingTimeout=$failoverWan1PingTimeout \
+    doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan1IsUp true
   :global failoverwan2IsUp [$checkAllTargets routeName="wan2" \
-    pingSrcAddress="192.168.154.1" doPing=$doPing LogDebugMsg=$LogDebugMsg \
-    LogInfoMsg=$LogInfoMsg]
+    pingSrcAddress="192.168.154.1" pingTimeout=$failoverWan2PingTimeout \
+    doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan2IsUp true
 
   if (($failoverwan1IsUp != $failoverWan1PrevState) || ($failoverwan2IsUp != $failoverWan2PrevState)) do={

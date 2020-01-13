@@ -10,6 +10,7 @@
 
 #:global failoverPingTries 3
 :global failoverPingTries 2
-:global failoverPingTimeout (:totime 00:00:00.035)
+:global failoverWan1PingTimeout (:totime 00:00:00.035)
+:global failoverWan2PingTimeout (:totime 00:00:00.055)
 :global failoverMinPingReplies 2
 :global failoverMaxFailedHosts 1
