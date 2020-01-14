@@ -1,0 +1,16 @@
+---
+- name: VM Provision
+  hosts: all
+
+  tasks:
+    - name: Enable IP forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+
+    - name: "Enable NAT from {{ nat_source }}"
+      iptables:
+        table: nat
+        chain: POSTROUTING
+        source: "{{ nat_source }}"
+        jump: MASQUERADE
