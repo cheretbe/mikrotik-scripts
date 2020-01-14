@@ -73,13 +73,25 @@ if ($failoverCheckIsRunning) do={
 do {
   $LogDebugMsg debugMsg="Loading settings"
   /import failover_settings.rsc
+  :global failoverWan1PingSrcAddress
+  :global failoverWan2PingSrcAddress
   :global failoverSwitchRoutes
   :global failoverWan1DefaultRoute
   :global failoverWan2DefaultRoute
   :global failoverPingTargets
   :global failoverWan1PingTimeout
   :global failoverWan2PingTimeout
+  :global failoverPingTries
+  :global failoverMinPingReplies
+  :global failoverMaxFailedHosts
 
+# Check mandatory parameters
+  if ([:typeof $failoverWan1PingSrcAddress] = "nothing") do={
+    $ExitWithError errorMsg=("failoverWan1PingSrcAddress parameter is not set")
+  }
+  if ([:typeof $failoverWan2PingSrcAddress] = "nothing") do={
+    $ExitWithError errorMsg=("failoverWan2PingSrcAddress parameter is not set")
+  }
   if ($failoverSwitchRoutes) do={
     if ([:len $failoverWan1DefaultRoute] != 1) do={
       $ExitWithError errorMsg=("Invalid failoverWan1DefaultRoute value (len=".[:len $failoverWan1DefaultRoute].")")
@@ -88,9 +100,18 @@ do {
       $ExitWithError errorMsg=("Invalid failoverWan2DefaultRoute value (len=".[:len $failoverWan2DefaultRoute].")")
     }
   }
+
 # Default values for settings that weren't defined explicitly
   if ([:typeof $failoverWan1PingTimeout] = "nothing") do={ :set failoverWan1PingTimeout (:totime 00:00:00.500) }
   if ([:typeof $failoverWan2PingTimeout] = "nothing") do={ :set failoverWan2PingTimeout (:totime 00:00:00.500) }
+  if ([:typeof $failoverSwitchRoutes] = "nothing") do={ :set failoverSwitchRoutes false }
+  if ([:typeof $failoverPingTargets] = "nothing") do={
+    :set failoverPingTargets { "1.1.1.1"; "1.0.0.1"; "8.8.8.8"; "8.8.4.4";
+      "77.88.8.8"; "77.88.8.1" }
+  }
+  if ([:typeof $failoverPingTries] = "nothing") do={ :set failoverPingTries 5 }
+  if ([:typeof $failoverMinPingReplies] = "nothing") do={ :set failoverMinPingReplies 2 }
+  if ([:typeof $failoverMaxFailedHosts] = "nothing") do={ :set failoverMaxFailedHosts 2 }
 
 # WAN1 interface previous state
   :global failoverWan1PrevState
@@ -107,11 +128,11 @@ do {
 
 
   :global failoverwan1IsUp [$checkAllTargets routeName="wan1" \
-    pingSrcAddress="192.168.154.1" pingTimeout=$failoverWan1PingTimeout \
+    pingSrcAddress=$failoverWan1PingSrcAddress pingTimeout=$failoverWan1PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan1IsUp true
   :global failoverwan2IsUp [$checkAllTargets routeName="wan2" \
-    pingSrcAddress="192.168.154.1" pingTimeout=$failoverWan2PingTimeout \
+    pingSrcAddress=$failoverWan2PingSrcAddress pingTimeout=$failoverWan2PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
 #  :global failoverwan2IsUp true
 
@@ -124,7 +145,6 @@ do {
   :set failoverWan1PrevState $failoverwan1IsUp
   :set failoverWan2PrevState $failoverwan2IsUp
 
-#  :put $failoverPingTargets
 } on-error={
   :set failoverCheckIsRunning false
   $ExitWithError errorMsg="Unhandled error in the script"
