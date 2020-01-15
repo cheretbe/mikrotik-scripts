@@ -1,8 +1,8 @@
-:global failoverWan1PingSrcAddress 192.168.154.1
-:global failoverWan2PingSrcAddress 172.18.20.1
+:global failoverWan1PingSrcAddress 172.19.10.1
+:global failoverWan2PingSrcAddress 172.19.10.2
 #:global failoverSwitchRoutes true
-:global failoverWan1DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=78.155.176.221 and !routing-mark]
-:global failoverWan2DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=83.219.131.197 and !routing-mark]
+:global failoverWan1DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]
+:global failoverWan2DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]
 :global failoverPingTargets {
   "1.1.1.1";
   "8.8.4.4"
