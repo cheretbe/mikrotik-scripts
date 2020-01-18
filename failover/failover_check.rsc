@@ -54,7 +54,7 @@
   $LogDebugMsg debugMsg=("$routeName test results [failed/threshold/total]: " . \
     "$failedHosts/$failoverMaxFailedHosts/$totalHosts")
   if ($failedHosts >= $failoverMaxFailedHosts) do={
-    $LogInfoMsg infoMsg=("No ping on $routeName to host(s) " . $failedHostsStr)
+    $LogInfoMsg infoMsg=("$routeName check failed - no ping to host(s) " . $failedHostsStr)
   }
   return ($failedHosts < $failoverMaxFailedHosts)
 }
@@ -72,7 +72,8 @@ if ($failoverCheckIsRunning) do={
 :set failoverCheckIsRunning true
 do {
   $LogDebugMsg debugMsg="Loading settings"
-  /import failover_settings.rsc
+#  /import failover_settings.rsc
+  /system script run failover_settings
   :global failoverWan1PingSrcAddress
   :global failoverWan2PingSrcAddress
   :global failoverSwitchRoutes
@@ -127,23 +128,23 @@ do {
   $LogDebugMsg debugMsg=("wan1Distance: $wan1Distance; wan2Distance: $wan2Distance; wan1IsActive: $wan1IsActive")
 
 
-  :global failoverwan1IsUp [$checkAllTargets routeName="wan1" \
+  :global failoverWan1IsUp [$checkAllTargets routeName="wan1" \
     pingSrcAddress=$failoverWan1PingSrcAddress pingTimeout=$failoverWan1PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
-#  :global failoverwan1IsUp true
-  :global failoverwan2IsUp [$checkAllTargets routeName="wan2" \
+#  :global failoverWan1IsUp true
+  :global failoverWan2IsUp [$checkAllTargets routeName="wan2" \
     pingSrcAddress=$failoverWan2PingSrcAddress pingTimeout=$failoverWan2PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
-#  :global failoverwan2IsUp true
+#  :global failoverWan2IsUp true
 
-  if (($failoverwan1IsUp != $failoverWan1PrevState) || ($failoverwan2IsUp != $failoverWan2PrevState)) do={
+  if (($failoverWan1IsUp != $failoverWan1PrevState) || ($failoverWan2IsUp != $failoverWan2PrevState)) do={
     if ([:len [/system script find name=failover_on_up_down]] != 0) do={
       $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
       /system script run failover_on_up_down
     }
   }
-  :set failoverWan1PrevState $failoverwan1IsUp
-  :set failoverWan2PrevState $failoverwan2IsUp
+  :set failoverWan1PrevState $failoverWan1IsUp
+  :set failoverWan2PrevState $failoverWan2IsUp
 
 } on-error={
   :set failoverCheckIsRunning false
