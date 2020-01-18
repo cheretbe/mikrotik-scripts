@@ -16,9 +16,10 @@ class failover_UnitTests(unittest.TestCase):
         }
         settings = {} if no_default_settings else default_settings
         settings.update(custom_settings)
+        # print(settings)
 
         with open(self.temp_settings_file, "w") as f:
-            f.write(":foreach fVar in=[/system script environment find name~\"failover\"] do={/system script environment remove $fVar }\n")
+            f.write(":foreach fVar in=[/system script environment find name~\"^failover\"] do={/system script environment remove $fVar }\n")
             f.write("if ([:len [/system script find name=failover_settings]] != 0) do={ /system script remove failover_settings }\n")
             f.write("/system script add name=failover_settings source=\"### test settings\\r\\\n")
             for setting_name, setting_value in settings.items():
@@ -38,11 +39,12 @@ class failover_UnitTests(unittest.TestCase):
             "/import", "failover_check.rsc"),
             cwd=vagrant_path
         )
-        # for line in output.decode("utf-8").splitlines():
-        #     print(line)
+        for line in output.decode("utf-8").splitlines():
+            print(line)
         return output.decode("utf-8").splitlines()
 
     def setup_class(self):
+        # self.longMessage = False
         vm_is_running = False
         output = subprocess.check_output("vagrant status router --machine-readable", shell=True, cwd=vagrant_path)
         for line in output.decode("utf-8").splitlines():
@@ -69,9 +71,99 @@ class failover_UnitTests(unittest.TestCase):
         os.remove(self.temp_settings_file)
         os.remove(self.vagrant_ssh_config)
 
+    def assertSubstringIn(self, first, second):
+        if not any(first in array_item for array_item in second):
+            raise AssertionError("'{}' not found is script output".format(first))
 
-    def test_dummy(self):
-        self.upload_settings(custom_settings={"ccc": "3"})
-        # self.upload_settings(custom_settings={"ccc": "3"}, no_default_settings=True)
+
+    def test_mandatory_parameters(self):
+        # Should fail if failoverWan1PingSrcAddress is not defined
+        self.upload_settings(no_default_settings=True)
         output = self.run_failover_script()
-        self.assertIn("wan21 test results [failed/threshold/total]: 0/2/6", output)
+        self.assertIn("ERROR: failoverWan1PingSrcAddress parameter is not set", output)
+
+        # Should fail if failoverWan2PingSrcAddress is not defined
+        self.upload_settings(no_default_settings=True,
+            custom_settings={"failoverWan1PingSrcAddress": "172.19.10.1"})
+        output = self.run_failover_script()
+        self.assertIn("ERROR: failoverWan2PingSrcAddress parameter is not set", output)
+
+        # Should not fail if both ping source addresses are defined and
+        # failoverSwitchRoutes is not set to true
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2"})
+        output = self.run_failover_script()
+        self.assertSubstringIn("name=failoverWan1PingSrcAddress value=172.19.10.1", output)
+        self.assertSubstringIn("name=failoverWan2PingSrcAddress value=172.19.10.2", output)
+        self.assertSubstringIn("name=failoverSwitchRoutes value=false", output)
+        self.assertIn("Settings has been loaded successfully", output)
+
+        # Should fail if failoverSwitchRoutes is set to true and no default
+        # routes to switch are defined
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2",
+            "failoverSwitchRoutes": "true"})
+        output = self.run_failover_script()
+        self.assertIn("ERROR: Invalid failoverWan1DefaultRoute value (len=0)", output)
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2",
+            "failoverSwitchRoutes": "true",
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]"
+        })
+        output = self.run_failover_script()
+        self.assertIn("ERROR: Invalid failoverWan2DefaultRoute value (len=0)", output)
+
+        # Should not fail if failoverSwitchRoutes is set to true and both default
+        # routes to switch are defined
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2",
+            "failoverSwitchRoutes": "true",
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
+            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]"
+        })
+        output = self.run_failover_script()
+        self.assertIn("Settings has been loaded successfully", output)
+
+    def test_default_parameters(self):
+        # Should use default values for non-mandatory parameters
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2"})
+        output = self.run_failover_script()
+        self.assertSubstringIn("name=failoverWan1PingTimeout value=00:00:00.500", output)
+        self.assertSubstringIn("name=failoverWan2PingTimeout value=00:00:00.500", output)
+        self.assertSubstringIn("name=failoverSwitchRoutes value=false", output)
+        self.assertSubstringIn("name=failoverPingTargets value=1.1.1.1;1.0.0.1;"
+            "8.8.8.8;8.8.4.4;77.88.8.8;77.88.8.1", output)
+        self.assertSubstringIn("name=failoverPingTries value=5", output)
+        self.assertSubstringIn("name=failoverMinPingReplies value=2", output)
+        self.assertSubstringIn("name=failoverMaxFailedHosts value=2", output)
+        self.assertIn("Settings has been loaded successfully", output)
+
+        # Should use specified values for explicitly specified parameters
+        self.upload_settings(no_default_settings=True, custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1",
+            "failoverWan2PingSrcAddress": "172.19.10.2",
+            "failoverSwitchRoutes": "true",
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
+            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]",
+            "failoverWan1PingTimeout": "(:totime 00:00:00.055)",
+            "failoverWan2PingTimeout": "(:totime 00:00:00.075)",
+            "failoverPingTargets": "{\\\"1.1.1.1\\\"; \\\"8.8.4.4\\\"}",
+            "failoverPingTries": "6",
+            "failoverMinPingReplies": "3",
+            "failoverMaxFailedHosts": "1"
+        })
+        output = self.run_failover_script()
+        self.assertSubstringIn("name=failoverWan1PingTimeout value=00:00:00.055", output)
+        self.assertSubstringIn("name=failoverWan2PingTimeout value=00:00:00.075", output)
+        self.assertSubstringIn("name=failoverSwitchRoutes value=true", output)
+        self.assertSubstringIn("name=failoverPingTargets value=1.1.1.1;8.8.4.4", output)
+        self.assertSubstringIn("name=failoverPingTries value=6", output)
+        self.assertSubstringIn("name=failoverMinPingReplies value=3", output)
+        self.assertSubstringIn("name=failoverMaxFailedHosts value=1", output)
+        self.assertIn("Settings has been loaded successfully", output)

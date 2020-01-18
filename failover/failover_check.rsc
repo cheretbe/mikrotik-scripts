@@ -114,6 +114,9 @@ do {
   if ([:typeof $failoverMinPingReplies] = "nothing") do={ :set failoverMinPingReplies 2 }
   if ([:typeof $failoverMaxFailedHosts] = "nothing") do={ :set failoverMaxFailedHosts 2 }
 
+  /system script environment print terse where name~"^failover"
+  $LogDebugMsg debugMsg="Settings has been loaded successfully"
+
 # WAN1 interface previous state
   :global failoverWan1PrevState
   if ([:typeof $failoverWan1PrevState] = "nothing") do={ :set failoverWan1PrevState true }
