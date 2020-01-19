@@ -8,14 +8,17 @@ if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
   exit 1
 fi
 
+project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)
+testlab_dir=$(cd ${project_dir}/../tools/testlab-2isp; pwd)
+
 if [ -z ${AO_MT_VAGRANT_VM+x} ]; then
   echo "Reading VM list"
-  v_status=$(vagrant status 2>&1)
+  v_status=$(cd ${testlab_dir}; vagrant status 2>&1)
   if [ $? -ne 0 ]; then
     echo $v_status
     return
   fi
-  vm_list=$(vagrant status --machine-readable | grep "state,running" | cut -d',' -f 2)
+  vm_list=$(cd ${testlab_dir}; vagrant status --machine-readable | grep "state,running" | cut -d',' -f 2)
   if [ "${vm_list}" == "" ]; then
     echo >&2 "Make sure at least one VM is running"
     return
@@ -37,17 +40,18 @@ if [ -z ${AO_MT_VAGRANT_CONFIG+x} ]; then
   echo "Creating temporary OpenSSH configuration file"
   AO_MT_VAGRANT_CONFIG=$(mktemp)
   echo "Configuration file path: ${AO_MT_VAGRANT_CONFIG}"
-  vagrant ssh-config ${AO_MT_VAGRANT_VM} > ${AO_MT_VAGRANT_CONFIG}
+  (cd ${testlab_dir}; vagrant ssh-config ${AO_MT_VAGRANT_VM} > ${AO_MT_VAGRANT_CONFIG})
   export AO_MT_VAGRANT_CONFIG
 fi
-
-project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)
 
 echo "Uploading failover_check.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRANT_VM}:
 
-echo "Uploading failover_settings.rsc"
-scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_settings.rsc" ${AO_MT_VAGRANT_VM}:
+echo "Uploading write_test_settings.rsc"
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/tools/write_test_settings.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Uploading setup.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/setup.rsc" ${AO_MT_VAGRANT_VM}:
+
+echo "Running '/import write_test_settings.rsc'"
+(cd ${testlab_dir}; vagrant ssh router -- /import write_test_settings.rsc)
