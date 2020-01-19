@@ -55,3 +55,10 @@ scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/setup.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Running '/import write_test_settings.rsc'"
 (cd ${testlab_dir}; vagrant ssh router -- /import write_test_settings.rsc)
+
+read -p "Run failover_check.rsc? [Y/n]" -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]] || [[ $REPLY = "" ]] ; then
+  echo "Running '/import failover_check.rsc'"
+  (cd ${testlab_dir}; vagrant ssh router -- /import failover_check.rsc)
+fi

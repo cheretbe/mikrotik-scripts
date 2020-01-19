@@ -97,7 +97,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertSubstringIn("name=failoverWan1PingSrcAddress value=172.19.10.1", output)
         self.assertSubstringIn("name=failoverWan2PingSrcAddress value=172.19.10.2", output)
         self.assertSubstringIn("name=failoverSwitchRoutes value=false", output)
-        self.assertIn("Settings has been loaded successfully", output)
+        self.assertIn("Settings have been loaded successfully", output)
 
         # Should fail if failoverSwitchRoutes is set to true and no default
         # routes to switch are defined
@@ -126,7 +126,7 @@ class failover_UnitTests(unittest.TestCase):
             "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]"
         })
         output = self.run_failover_script()
-        self.assertIn("Settings has been loaded successfully", output)
+        self.assertIn("Settings have been loaded successfully", output)
 
     def test_default_parameters(self):
         # Should use default values for non-mandatory parameters
@@ -142,7 +142,8 @@ class failover_UnitTests(unittest.TestCase):
         self.assertSubstringIn("name=failoverPingTries value=5", output)
         self.assertSubstringIn("name=failoverMinPingReplies value=2", output)
         self.assertSubstringIn("name=failoverMaxFailedHosts value=2", output)
-        self.assertIn("Settings has been loaded successfully", output)
+        self.assertSubstringIn("name=failoverRecoverCount value=30", output)
+        self.assertIn("Settings have been loaded successfully", output)
 
         # Should use specified values for explicitly specified parameters
         self.upload_settings(no_default_settings=True, custom_settings={
@@ -156,7 +157,8 @@ class failover_UnitTests(unittest.TestCase):
             "failoverPingTargets": "{\\\"1.1.1.1\\\"; \\\"8.8.4.4\\\"}",
             "failoverPingTries": "6",
             "failoverMinPingReplies": "3",
-            "failoverMaxFailedHosts": "1"
+            "failoverMaxFailedHosts": "1",
+            "failoverRecoverCount": "5"
         })
         output = self.run_failover_script()
         self.assertSubstringIn("name=failoverWan1PingTimeout value=00:00:00.055", output)
@@ -166,4 +168,5 @@ class failover_UnitTests(unittest.TestCase):
         self.assertSubstringIn("name=failoverPingTries value=6", output)
         self.assertSubstringIn("name=failoverMinPingReplies value=3", output)
         self.assertSubstringIn("name=failoverMaxFailedHosts value=1", output)
-        self.assertIn("Settings has been loaded successfully", output)
+        self.assertSubstringIn("name=failoverRecoverCount value=5", output)
+        self.assertIn("Settings have been loaded successfully", output)

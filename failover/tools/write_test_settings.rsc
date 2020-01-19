@@ -6,12 +6,12 @@ if ([:len [/system script find name=failover_settings]] != 0) do={ /system scrip
     \n:global failoverWan1DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]\r\
     \n:global failoverWan2DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]\r\
     \n:global failoverPingTargets {\r\
-    \n  \"1.1.1.1\";\r\
     \n  \"8.8.4.4\"\r\
     \n}\r\
     \n\r\
-    \n:global failoverPingTries 2\r\
-    \n:global failoverWan1PingTimeout (:totime 00:00:00.035)\r\
+    \n:global failoverPingTries 1\r\
+    \n:global failoverWan1PingTimeout (:totime 00:00:00.055)\r\
     \n:global failoverWan2PingTimeout (:totime 00:00:00.055)\r\
-    \n#:global failoverMinPingReplies 3\r\
+    \n:global failoverMinPingReplies 1\r\
+    \n:global failoverRecoverCount 1\r\
     \n:global failoverMaxFailedHosts 1"

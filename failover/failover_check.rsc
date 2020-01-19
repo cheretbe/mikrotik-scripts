@@ -10,6 +10,11 @@
   :put $infoMsg
 }
 
+:local LogWarningMsg do={
+  :log warning ("Failover script: " . $warningMsg)
+  :put ("WARNING: $warningMsg")
+}
+
 :local ExitWithError do={
   :log error ("Failover script: $errorMsg")
   :put ("ERROR: $errorMsg")
@@ -72,7 +77,6 @@ if ($failoverCheckIsRunning) do={
 :set failoverCheckIsRunning true
 do {
   $LogDebugMsg debugMsg="Loading settings"
-#  /import failover_settings.rsc
   /system script run failover_settings
   :global failoverWan1PingSrcAddress
   :global failoverWan2PingSrcAddress
@@ -85,6 +89,7 @@ do {
   :global failoverPingTries
   :global failoverMinPingReplies
   :global failoverMaxFailedHosts
+  :global failoverRecoverCount
 
 # Check mandatory parameters
   if ([:typeof $failoverWan1PingSrcAddress] = "nothing") do={
@@ -113,41 +118,71 @@ do {
   if ([:typeof $failoverPingTries] = "nothing") do={ :set failoverPingTries 5 }
   if ([:typeof $failoverMinPingReplies] = "nothing") do={ :set failoverMinPingReplies 2 }
   if ([:typeof $failoverMaxFailedHosts] = "nothing") do={ :set failoverMaxFailedHosts 2 }
+  if ([:typeof $failoverRecoverCount] = "nothing") do={ :set failoverRecoverCount 30 }
 
   /system script environment print terse where name~"^failover"
-  $LogDebugMsg debugMsg="Settings has been loaded successfully"
+  $LogDebugMsg debugMsg="Settings have been loaded successfully"
 
 # WAN1 interface previous state
   :global failoverWan1PrevState
-  if ([:typeof $failoverWan1PrevState] = "nothing") do={ :set failoverWan1PrevState true }
+  if ([:typeof $failoverWan1PrevState] = "nothing") do={ :set failoverWan1PrevState 0 }
 # WAN2 interface previous state
   :global failoverWan2PrevState
-  if ([:typeof $failoverWan2PrevState] = "nothing") do={ :set failoverWan2PrevState true }
+  if ([:typeof $failoverWan2PrevState] = "nothing") do={ :set failoverWan2PrevState 0 }
 
-# We presume that WAN1 is active if its route distance is lower than WAN2's
-  :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
-  :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
-  :local wan1IsActive ($wan1Distance < $wan2Distance)
-  $LogDebugMsg debugMsg=("wan1Distance: $wan1Distance; wan2Distance: $wan2Distance; wan1IsActive: $wan1IsActive")
+  if ($failoverSwitchRoutes) do={
+#   We presume that WAN1 is active if its route distance is lower than WAN2's
+    :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
+    :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
+    :local wan1IsActive ($wan1Distance < $wan2Distance)
+    $LogDebugMsg debugMsg=("wan1Distance: $wan1Distance; wan2Distance: $wan2Distance; wan1IsActive: $wan1IsActive")
+  }
 
-
-  :global failoverWan1IsUp [$checkAllTargets routeName="wan1" \
+  :local wan1CheckResult [$checkAllTargets routeName="wan1" \
     pingSrcAddress=$failoverWan1PingSrcAddress pingTimeout=$failoverWan1PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
-#  :global failoverWan1IsUp true
-  :global failoverWan2IsUp [$checkAllTargets routeName="wan2" \
+  :local wan2CheckResult [$checkAllTargets routeName="wan2" \
     pingSrcAddress=$failoverWan2PingSrcAddress pingTimeout=$failoverWan2PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
-#  :global failoverWan2IsUp true
 
-  if (($failoverWan1IsUp != $failoverWan1PrevState) || ($failoverWan2IsUp != $failoverWan2PrevState)) do={
+  :local wan1State
+  if ($wan1CheckResult) do={
+    if ($failoverWan1PrevState = 0) do={ :set wan1State 0 } else={ :set wan1State ($failoverWan1PrevState + 1) }
+  } else={
+    :set wan1State (-$failoverRecoverCount)
+  }
+  :local wan2State
+  if ($wan2CheckResult) do={
+    if ($failoverWan1PrevState = 0) do={ :set wan2State 0 } else={ :set wan2State ($failoverWan1PrevState + 1) }
+  } else={
+    :set wan2State (-$failoverRecoverCount)
+  }
+  :global failoverWan1IsUp ($wan1State = 0)
+  :global failoverWan2IsUp ($wan2State = 0)
+
+#  :put ("!!!! failoverWan1IsUp: $failoverWan1IsUp; failoverWan1PrevState: $failoverWan1PrevState; failoverWan2IsUp: $failoverWan2IsUp; failoverWan2PrevState: $failoverWan2PrevState")
+
+  :local routeSwitch false
+  :local stateChange
+  if ($failoverWan1IsUp != ($failoverWan1PrevState = 0)) do={
+    if ($failoverWan1IsUp) do={ :set stateChange "up" } else={ :set stateChange "down" }
+    $LogWarningMsg warningMsg=("wan1 went $stateChange")
+    :set routeSwitch true
+  }
+  if ($failoverWan2IsUp != ($failoverWan2PrevState = 0)) do={
+    if ($failoverWan2IsUp) do={ :set stateChange "up" } else={ :set stateChange "down" }
+    $LogWarningMsg warningMsg=("wan2 went $stateChange")
+    :set routeSwitch true
+  }
+
+  if ($routeSwitch) do={
     if ([:len [/system script find name=failover_on_up_down]] != 0) do={
       $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
       /system script run failover_on_up_down
     }
   }
-  :set failoverWan1PrevState $failoverWan1IsUp
-  :set failoverWan2PrevState $failoverWan2IsUp
+  :set failoverWan1PrevState $wan1State
+  :set failoverWan2PrevState $wan2State
 
 } on-error={
   :set failoverCheckIsRunning false
