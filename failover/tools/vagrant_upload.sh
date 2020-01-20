@@ -9,7 +9,13 @@ if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
 fi
 
 project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)
-testlab_dir=$(cd ${project_dir}/../tools/testlab-2isp; pwd)
+if [ -z ${1+x} ]; then
+  testlab_dir=$(cd ${project_dir}/../tools/testlab-2isp; pwd)
+else
+  testlab_dir=${1}
+fi
+
+echo "Varant testlab path: ${testlab_dir}"
 
 if [ -z ${AO_MT_VAGRANT_VM+x} ]; then
   echo "Reading VM list"
@@ -54,11 +60,11 @@ echo "Uploading setup.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/setup.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Running '/import write_test_settings.rsc'"
-(cd ${testlab_dir}; vagrant ssh router -- /import write_test_settings.rsc)
+(cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import write_test_settings.rsc)
 
 read -p "Run failover_check.rsc? [Y/n]" -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ $REPLY = "" ]] ; then
   echo "Running '/import failover_check.rsc'"
-  (cd ${testlab_dir}; vagrant ssh router -- /import failover_check.rsc)
+  (cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import failover_check.rsc)
 fi
