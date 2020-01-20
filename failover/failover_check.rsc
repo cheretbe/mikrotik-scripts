@@ -153,7 +153,7 @@ do {
   }
   :local wan2State
   if ($wan2CheckResult) do={
-    if ($failoverWan1PrevState = 0) do={ :set wan2State 0 } else={ :set wan2State ($failoverWan1PrevState + 1) }
+    if ($failoverWan2PrevState = 0) do={ :set wan2State 0 } else={ :set wan2State ($failoverWan2PrevState + 1) }
   } else={
     :set wan2State (-$failoverRecoverCount)
   }
@@ -162,20 +162,20 @@ do {
 
 #  :put ("!!!! failoverWan1IsUp: $failoverWan1IsUp; failoverWan1PrevState: $failoverWan1PrevState; failoverWan2IsUp: $failoverWan2IsUp; failoverWan2PrevState: $failoverWan2PrevState")
 
-  :local routeSwitch false
+  :local routeUpOrDown false
   :local stateChange
   if ($failoverWan1IsUp != ($failoverWan1PrevState = 0)) do={
     if ($failoverWan1IsUp) do={ :set stateChange "up" } else={ :set stateChange "down" }
     $LogWarningMsg warningMsg=("wan1 went $stateChange")
-    :set routeSwitch true
+    :set routeUpOrDown true
   }
   if ($failoverWan2IsUp != ($failoverWan2PrevState = 0)) do={
     if ($failoverWan2IsUp) do={ :set stateChange "up" } else={ :set stateChange "down" }
     $LogWarningMsg warningMsg=("wan2 went $stateChange")
-    :set routeSwitch true
+    :set routeUpOrDown true
   }
 
-  if ($routeSwitch) do={
+  if ($routeUpOrDown) do={
     if ([:len [/system script find name=failover_on_up_down]] != 0) do={
       $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
       /system script run failover_on_up_down
