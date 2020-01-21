@@ -160,7 +160,8 @@ do {
   :global failoverWan1IsUp ($wan1State = 0)
   :global failoverWan2IsUp ($wan2State = 0)
 
-#  :put ("!!!! failoverWan1IsUp: $failoverWan1IsUp; failoverWan1PrevState: $failoverWan1PrevState; failoverWan2IsUp: $failoverWan2IsUp; failoverWan2PrevState: $failoverWan2PrevState")
+  :put ("failoverWan1IsUp: $failoverWan1IsUp; wan1State: $wan1State; failoverWan1PrevState: $failoverWan1PrevState")
+  :put ("failoverWan2IsUp: $failoverWan2IsUp; wan2State: $wan2State; failoverWan2PrevState: $failoverWan2PrevState")
 
   :local routeUpOrDown false
   :local stateChange

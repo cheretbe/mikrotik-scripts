@@ -186,7 +186,7 @@ class failover_UnitTests(unittest.TestCase):
 
     def test_up_down_detection(self):
         # Should detect wan1 recovery after 3 successful pings
-        # 1. Initial state, successfull ping
+        # 1. Initial state, successful ping
         self.upload_settings(custom_settings={"failoverRecoverCount": "3"})
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
@@ -200,7 +200,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went down", output)
-        # 3. successfull ping 1
+        # 3. successful ping 1
         run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
         time.sleep(5)
         output = self.run_failover_script()
@@ -208,13 +208,13 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went up", output)
         self.assertNotIn("WARNING: wan2 went down", output)
-        # 4. successfull ping 2
+        # 4. successful ping 2
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went up", output)
         self.assertNotIn("WARNING: wan2 went down", output)
-        # 5. successfull ping 3, recovery
+        # 5. successful ping 3, recovery
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -228,7 +228,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan2 went down", output)
 
         # Should detect wan2 recovery after 3 successful pings
-        # 1. Initial state, successfull ping
+        # 1. Initial state, successful ping
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -241,7 +241,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertIn("WARNING: wan2 went down", output)
-        # 3. successfull ping 1
+        # 3. successful ping 1
         run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
         time.sleep(5)
         output = self.run_failover_script()
@@ -249,19 +249,104 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went up", output)
-        # 4. successfull ping 2
+        # 4. successful ping 2
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went up", output)
-        # 5. successfull ping 3, recovery
+        # 5. successful ping 3, recovery
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertIn("WARNING: wan2 went up", output)
         # 6. normal operation
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+
+    # def test_dummy(self):
+        # Should detect both routes recovery after 3 successful pings and some
+        # up/downs in between
+        # 1. Initial state, successful ping
+        # self.upload_settings(custom_settings={"failoverRecoverCount": "3"})
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+        # 2. wan1 and wan2 go down
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        # 3. successful ping #1 on wan1, wan2 is still down
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        time.sleep(5)
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 4. wan1 goes down (counter resets), wan2 is still down
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 5. successful ping #1 on wan1 and #1 on wan2
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        time.sleep(5)
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 6. successful ping #2 on wan1 and #2 on wan2
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        time.sleep(5)
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 7. successful ping #3 on wan1 (recovery), wan2 goes down (counter resets)
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 8. successful ping (uncounted) on wan1, successful ping #1 on wan2
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        time.sleep(5)
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 9. successful ping (uncounted) on wan1, successful ping #2 on wan2
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        # 10. successful ping (uncounted) on wan1, successful ping #3 on wan2 (recovery)
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went up", output)
+        # 11. successful pings (uncounted) on wan1 and wan2
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
