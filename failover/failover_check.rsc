@@ -81,6 +81,7 @@ do {
   :global failoverWan1PingSrcAddress
   :global failoverWan2PingSrcAddress
   :global failoverSwitchRoutes
+  :global failoverPreferWan2
   :global failoverWan1DefaultRoute
   :global failoverWan2DefaultRoute
   :global failoverPingTargets
@@ -111,6 +112,7 @@ do {
   if ([:typeof $failoverWan1PingTimeout] = "nothing") do={ :set failoverWan1PingTimeout (:totime 00:00:00.500) }
   if ([:typeof $failoverWan2PingTimeout] = "nothing") do={ :set failoverWan2PingTimeout (:totime 00:00:00.500) }
   if ([:typeof $failoverSwitchRoutes] = "nothing") do={ :set failoverSwitchRoutes false }
+  if ([:typeof $failoverPreferWan2] = "nothing") do={ :set failoverPreferWan2 false }
   if ([:typeof $failoverPingTargets] = "nothing") do={
     :set failoverPingTargets { "1.1.1.1"; "1.0.0.1"; "8.8.8.8"; "8.8.4.4";
       "77.88.8.8"; "77.88.8.1" }

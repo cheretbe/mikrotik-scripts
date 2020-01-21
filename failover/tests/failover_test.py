@@ -150,6 +150,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertSubstringIn("name=failoverWan1PingTimeout value=00:00:00.500", output)
         self.assertSubstringIn("name=failoverWan2PingTimeout value=00:00:00.500", output)
         self.assertSubstringIn("name=failoverSwitchRoutes value=false", output)
+        self.assertSubstringIn("name=failoverPreferWan2 value=false", output)
         self.assertSubstringIn("name=failoverPingTargets value=1.1.1.1;1.0.0.1;"
             "8.8.8.8;8.8.4.4;77.88.8.8;77.88.8.1", output)
         self.assertSubstringIn("name=failoverPingTries value=5", output)
@@ -163,6 +164,7 @@ class failover_UnitTests(unittest.TestCase):
             "failoverWan1PingSrcAddress": "172.19.10.1",
             "failoverWan2PingSrcAddress": "172.19.10.2",
             "failoverSwitchRoutes": "true",
+            "failoverPreferWan2": "true",
             "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
             "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]",
             "failoverWan1PingTimeout": "(:totime 00:00:00.055)",
@@ -177,6 +179,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertSubstringIn("name=failoverWan1PingTimeout value=00:00:00.055", output)
         self.assertSubstringIn("name=failoverWan2PingTimeout value=00:00:00.075", output)
         self.assertSubstringIn("name=failoverSwitchRoutes value=true", output)
+        self.assertSubstringIn("name=failoverPreferWan2 value=true", output)
         self.assertSubstringIn("name=failoverPingTargets value=1.1.1.1;8.8.4.4", output)
         self.assertSubstringIn("name=failoverPingTries value=6", output)
         self.assertSubstringIn("name=failoverMinPingReplies value=3", output)
