@@ -57,7 +57,7 @@ echo "Uploading write_test_settings.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/tools/write_test_settings.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Uploading setup.rsc"
-scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/setup.rsc" ${AO_MT_VAGRANT_VM}:
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_setup.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Running '/import write_test_settings.rsc'"
 (cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import write_test_settings.rsc)

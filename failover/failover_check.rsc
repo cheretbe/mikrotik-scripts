@@ -132,12 +132,23 @@ do {
   :global failoverWan2PrevState
   if ([:typeof $failoverWan2PrevState] = "nothing") do={ :set failoverWan2PrevState 0 }
 
+  :local activeDistance
+  :local inactiveDistance
+  :local mainRouteIsActive
   if ($failoverSwitchRoutes) do={
-#   We presume that WAN1 is active if its route distance is lower than WAN2's
+#   We presume that route is active if its route distance is greater
     :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
     :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
-    :local wan1IsActive ($wan1Distance < $wan2Distance)
-    $LogDebugMsg debugMsg=("wan1Distance: $wan1Distance; wan2Distance: $wan2Distance; wan1IsActive: $wan1IsActive")
+    if ($wan1Distance < $wan2Distance) do={
+      :set activeDistance $wan1Distance
+      :set inactiveDistance $wan2Distance
+      :set mainRouteIsActive (!$failoverPreferWan2)
+    } else={
+      :set activeDistance $wan2Distance
+      :set inactiveDistance $wan1Distance
+      :set mainRouteIsActive ($failoverPreferWan2)
+    }
+    $LogDebugMsg debugMsg=("mainRouteIsActive: $mainRouteIsActive; wan1Distance: $wan1Distance; wan2Distance: $wan2Distance")
   }
 
   :local wan1CheckResult [$checkAllTargets routeName="wan1" \
@@ -179,6 +190,22 @@ do {
   }
 
   if ($routeUpOrDown) do={
+    if ($wan1IsActive) do={
+      if ((!$wan1IsUp) && $wan2IsUp) do={
+#        :put ("WARNING: Switching default route to \"$wan2Name\"")
+#        :log warning ("Failover script: Switching default route to \"$wan2Name\"")
+#        /ip route set [find comment=$wan1Name && (!routing-mark) && static] distance=20
+#        /ip route set [find comment=$wan2Name && (!routing-mark) && static] distance=10
+      }
+    } else={
+      if ($wan1IsUp) do={
+#        :put ("WARNING: Switching default route to \"$wan1Name\"")
+#        :log warning ("Failover script: Switching default route to \"$wan1Name\"")
+#        /ip route set [find comment=$wan1Name && (!routing-mark) && static] distance=10
+#        /ip route set [find comment=$wan2Name && (!routing-mark) && static] distance=20
+      }
+    }
+
     if ([:len [/system script find name=failover_on_up_down]] != 0) do={
       $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
       /system script run failover_on_up_down
