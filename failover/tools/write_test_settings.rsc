@@ -4,7 +4,7 @@ if ([:len [/system script find name=failover_settings]] != 0) do={ /system scrip
     \n:global failoverWan1PingSrcAddress 172.19.10.1\r\
     \n:global failoverWan2PingSrcAddress 172.19.10.2\r\
     \n:global failoverSwitchRoutes true\r\
-    \n:global failoverPreferWan2 true\r\
+    \n#:global failoverPreferWan2 true\r\
     \n:global failoverWan1DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]\r\
     \n:global failoverWan2DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]\r\
     \n:global failoverPingTargets {\r\

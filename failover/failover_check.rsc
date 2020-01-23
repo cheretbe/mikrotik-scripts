@@ -132,25 +132,6 @@ do {
   :global failoverWan2PrevState
   if ([:typeof $failoverWan2PrevState] = "nothing") do={ :set failoverWan2PrevState 0 }
 
-  :local activeDistance
-  :local inactiveDistance
-  :local mainRouteIsActive
-  if ($failoverSwitchRoutes) do={
-#   We presume that route is active if its route distance is greater
-    :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
-    :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
-    if ($wan1Distance < $wan2Distance) do={
-      :set activeDistance $wan1Distance
-      :set inactiveDistance $wan2Distance
-      :set mainRouteIsActive (!$failoverPreferWan2)
-    } else={
-      :set activeDistance $wan2Distance
-      :set inactiveDistance $wan1Distance
-      :set mainRouteIsActive ($failoverPreferWan2)
-    }
-    $LogDebugMsg debugMsg=("mainRouteIsActive: $mainRouteIsActive; wan1Distance: $wan1Distance; wan2Distance: $wan2Distance")
-  }
-
   :local wan1CheckResult [$checkAllTargets routeName="wan1" \
     pingSrcAddress=$failoverWan1PingSrcAddress pingTimeout=$failoverWan1PingTimeout \
     doPing=$doPing LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg]
@@ -190,19 +171,59 @@ do {
   }
 
   if ($routeUpOrDown) do={
-    if ($wan1IsActive) do={
-      if ((!$wan1IsUp) && $wan2IsUp) do={
-#        :put ("WARNING: Switching default route to \"$wan2Name\"")
-#        :log warning ("Failover script: Switching default route to \"$wan2Name\"")
-#        /ip route set [find comment=$wan1Name && (!routing-mark) && static] distance=20
-#        /ip route set [find comment=$wan2Name && (!routing-mark) && static] distance=10
+    if ($failoverSwitchRoutes) do={
+      :local activeDistance
+      :local inactiveDistance
+      :local mainRouteIsActive
+      :local mainRouteName
+      :local mainRoute
+      :local mainRouteIsUp
+      :local backupRouteName
+      :local backupRoute
+      :local backupRouteIsUp
+
+#     We presume that route is active if its route distance is smaller
+      :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
+      :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
+      if ($wan1Distance < $wan2Distance) do={
+        :set activeDistance $wan1Distance
+        :set inactiveDistance $wan2Distance
+        :set mainRouteIsActive (!$failoverPreferWan2)
+      } else={
+        :set activeDistance $wan2Distance
+        :set inactiveDistance $wan1Distance
+        :set mainRouteIsActive ($failoverPreferWan2)
       }
-    } else={
-      if ($wan1IsUp) do={
-#        :put ("WARNING: Switching default route to \"$wan1Name\"")
-#        :log warning ("Failover script: Switching default route to \"$wan1Name\"")
-#        /ip route set [find comment=$wan1Name && (!routing-mark) && static] distance=10
-#        /ip route set [find comment=$wan2Name && (!routing-mark) && static] distance=20
+      $LogDebugMsg debugMsg=("mainRouteIsActive: $mainRouteIsActive; wan1Distance: $wan1Distance; wan2Distance: $wan2Distance")
+
+      if ($failoverPreferWan2) do={
+        :set mainRouteName "wan2"
+        :set backupRouteName "wan1"
+        :set mainRoute $failoverWan2DefaultRoute
+        :set backupRoute $failoverWan1DefaultRoute
+        :set mainRouteIsUp $failoverWan2IsUp
+        :set backupRouteIsUp $failoverWan1IsUp
+      } else={
+        :set mainRouteName "wan1"
+        :set backupRouteName "wan2"
+        :set mainRoute $failoverWan1DefaultRoute
+        :set backupRoute $failoverWan2DefaultRoute
+        :set mainRouteIsUp $failoverWan1IsUp
+        :set backupRouteIsUp $failoverWan2IsUp
+      }
+
+      if ($mainRouteIsActive) do={
+        if ((!$mainRouteIsUp) && $backupRouteIsUp) do={
+          $LogWarningMsg warningMsg=("Switching default route to '$backupRouteName'")
+          /ip route set $mainRoute distance=$inactiveDistance
+          /ip route set $backupRoute distance=$activeDistance
+        }
+      } else={
+        if ($mainRouteIsUp) do={
+          $LogWarningMsg warningMsg=("Switching default route to '$mainRouteName'")
+          /ip route set $mainRoute distance=$activeDistance
+          /ip route set $backupRoute distance=$inactiveDistance
+        }
       }
     }
 
