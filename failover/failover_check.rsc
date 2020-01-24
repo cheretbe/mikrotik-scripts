@@ -170,63 +170,65 @@ do {
     :set routeUpOrDown true
   }
 
-  if ($routeUpOrDown) do={
-    if ($failoverSwitchRoutes) do={
-      :local activeDistance
-      :local inactiveDistance
-      :local mainRouteIsActive
-      :local mainRouteName
-      :local mainRoute
-      :local mainRouteIsUp
-      :local backupRouteName
-      :local backupRoute
-      :local backupRouteIsUp
+  if ($failoverSwitchRoutes) do={
+    :local activeDistance
+    :local inactiveDistance
+    :local mainRouteIsActive
+    :local mainRouteName
+    :local mainRoute
+    :local mainRouteIsUp
+    :local backupRouteName
+    :local backupRoute
+    :local backupRouteIsUp
 
 #     We presume that route is active if its route distance is smaller
-      :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
-      :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
-      if ($wan1Distance < $wan2Distance) do={
-        :set activeDistance $wan1Distance
-        :set inactiveDistance $wan2Distance
-        :set mainRouteIsActive (!$failoverPreferWan2)
-      } else={
-        :set activeDistance $wan2Distance
-        :set inactiveDistance $wan1Distance
-        :set mainRouteIsActive ($failoverPreferWan2)
-      }
-      $LogDebugMsg debugMsg=("mainRouteIsActive: $mainRouteIsActive; wan1Distance: $wan1Distance; wan2Distance: $wan2Distance")
+    :local wan1Distance [/ip route get $failoverWan1DefaultRoute distance]
+    :local wan2Distance [/ip route get $failoverWan2DefaultRoute distance]
+    if ($wan1Distance < $wan2Distance) do={
+      :set activeDistance $wan1Distance
+      :set inactiveDistance $wan2Distance
+      :set mainRouteIsActive (!$failoverPreferWan2)
+    } else={
+      :set activeDistance $wan2Distance
+      :set inactiveDistance $wan1Distance
+      :set mainRouteIsActive ($failoverPreferWan2)
+    }
+    $LogDebugMsg debugMsg=("mainRouteIsActive: $mainRouteIsActive; wan1Distance: $wan1Distance; wan2Distance: $wan2Distance")
 
-      if ($failoverPreferWan2) do={
-        :set mainRouteName "wan2"
-        :set backupRouteName "wan1"
-        :set mainRoute $failoverWan2DefaultRoute
-        :set backupRoute $failoverWan1DefaultRoute
-        :set mainRouteIsUp $failoverWan2IsUp
-        :set backupRouteIsUp $failoverWan1IsUp
-      } else={
-        :set mainRouteName "wan1"
-        :set backupRouteName "wan2"
-        :set mainRoute $failoverWan1DefaultRoute
-        :set backupRoute $failoverWan2DefaultRoute
-        :set mainRouteIsUp $failoverWan1IsUp
-        :set backupRouteIsUp $failoverWan2IsUp
-      }
-
-      if ($mainRouteIsActive) do={
-        if ((!$mainRouteIsUp) && $backupRouteIsUp) do={
-          $LogWarningMsg warningMsg=("Switching default route to '$backupRouteName'")
-          /ip route set $mainRoute distance=$inactiveDistance
-          /ip route set $backupRoute distance=$activeDistance
-        }
-      } else={
-        if ($mainRouteIsUp) do={
-          $LogWarningMsg warningMsg=("Switching default route to '$mainRouteName'")
-          /ip route set $mainRoute distance=$activeDistance
-          /ip route set $backupRoute distance=$inactiveDistance
-        }
-      }
+    if ($failoverPreferWan2) do={
+      :set mainRouteName "wan2"
+      :set backupRouteName "wan1"
+      :set mainRoute $failoverWan2DefaultRoute
+      :set backupRoute $failoverWan1DefaultRoute
+      :set mainRouteIsUp $failoverWan2IsUp
+      :set backupRouteIsUp $failoverWan1IsUp
+    } else={
+      :set mainRouteName "wan1"
+      :set backupRouteName "wan2"
+      :set mainRoute $failoverWan1DefaultRoute
+      :set backupRoute $failoverWan2DefaultRoute
+      :set mainRouteIsUp $failoverWan1IsUp
+      :set backupRouteIsUp $failoverWan2IsUp
     }
 
+    if ($mainRouteIsActive) do={
+      if ((!$mainRouteIsUp) && $backupRouteIsUp) do={
+        $LogWarningMsg warningMsg=("Switching default route to '$backupRouteName'")
+        /ip route set $mainRoute distance=$inactiveDistance
+        /ip route set $backupRoute distance=$activeDistance
+        :set routeUpOrDown true
+      }
+    } else={
+      if ($mainRouteIsUp) do={
+        $LogWarningMsg warningMsg=("Switching default route to '$mainRouteName'")
+        /ip route set $mainRoute distance=$activeDistance
+        /ip route set $backupRoute distance=$inactiveDistance
+        :set routeUpOrDown true
+      }
+    }
+  }
+
+  if ($routeUpOrDown) do={
     if ([:len [/system script find name=failover_on_up_down]] != 0) do={
       $LogDebugMsg debugMsg=("Running 'failover_on_up_down' script")
       /system script run failover_on_up_down
