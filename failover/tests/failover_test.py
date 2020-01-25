@@ -47,6 +47,38 @@ class failover_UnitTests(unittest.TestCase):
             cwd=vagrant_path
         )
 
+    def upload_helper_functions(self):
+        functions_definition = (
+            ":global TestEnableInterface do={",
+            "  /interface ethernet set [find name=$ifName] disabled=no;",
+            "  /ip firewall connection remove [/ip firewall connection find protocol=icmp and src-address~(\"^$pingSrcAddr\")]",
+            "",
+            "  :local pingCounter 0",
+            "  :local continuePing true",
+            "  while ($continuePing) do={",
+            "    :delay 500ms",
+            "    if ([/ping count=1 8.8.8.8 src-address=$pingSrcAddr interval=00:00:00.500] = 1) do={ :set continuePing false }",
+            "    :set pingCounter ($pingCounter + 1)",
+            "    if ($pingCounter > 10) do={",
+            "      :put \"Timeout waiting for ping\"",
+            "      :set continuePing false",
+            "    }",
+            "  }",
+            "}"
+        )
+        with open(self.temp_settings_file, "w") as f:
+            for line in functions_definition:
+                f.write("{}\n".format(line))
+        subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
+            self.temp_settings_file, "router:test_functions_definition.rsc"))
+        subprocess.check_call(("vagrant", "ssh", "router", "--", "/import",
+            "test_functions_definition.rsc"),
+            cwd=vagrant_path
+        )
+
+    def pcc(self, dummy):
+        print(dummy)
+
     def run_failover_script(self):
         output = subprocess.check_output(("vagrant", "ssh", "router", "--",
             "/import", "failover_check.rsc"),
@@ -56,8 +88,8 @@ class failover_UnitTests(unittest.TestCase):
             print(line)
         return output.decode("utf-8").splitlines()
 
-    def setup_class(self):
-        # self.longMessage = False
+    def setup_class(cls):
+        # cls.longMessage = False
         vm_is_running = False
         output = subprocess.check_output("vagrant status router --machine-readable", shell=True, cwd=vagrant_path)
         for line in output.decode("utf-8").splitlines():
@@ -68,17 +100,19 @@ class failover_UnitTests(unittest.TestCase):
             raise Exception("VM 'router' is not runnig. Bring it up using "
                 "'vagrant up' command in {}".format(vagrant_path))
 
-        fd, self.vagrant_ssh_config = tempfile.mkstemp()
+        fd, cls.vagrant_ssh_config = tempfile.mkstemp()
         os.close(fd)
-        subprocess.check_call("vagrant ssh-config router > {}".format(self.vagrant_ssh_config),
+        subprocess.check_call("vagrant ssh-config router > {}".format(cls.vagrant_ssh_config),
             shell=True, cwd=vagrant_path)
 
         failover_script_path = os.path.realpath(script_path + "../../failover_check.rsc")
-        subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
+        subprocess.check_call(("scp", "-F", cls.vagrant_ssh_config,
             failover_script_path, "router:"))
 
-        fd, self.temp_settings_file = tempfile.mkstemp()
+        fd, cls.temp_settings_file = tempfile.mkstemp()
         os.close(fd)
+
+        cls.upload_helper_functions(cls)
 
     def teardown_class(self):
         os.remove(self.temp_settings_file)
@@ -204,8 +238,9 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went down", output)
         # 3. successful ping 1
-        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -245,8 +280,9 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertIn("WARNING: wan2 went down", output)
         # 3. successful ping 1
-        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -271,7 +307,6 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went down", output)
 
-    # def test_dummy(self):
         # Should detect both routes recovery after 3 successful pings and some
         # up/downs in between
         # 1. Initial state, successful ping
@@ -290,8 +325,9 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("WARNING: wan1 went down", output)
         self.assertIn("WARNING: wan2 went down", output)
         # 3. successful ping #1 on wan1, wan2 is still down
-        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
@@ -305,18 +341,22 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan1 went up", output)
         self.assertNotIn("WARNING: wan2 went up", output)
         # 5. successful ping #1 on wan1 and #1 on wan2
-        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went up", output)
         self.assertNotIn("WARNING: wan2 went up", output)
         # 6. successful ping #2 on wan1 and #2 on wan2
-        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
+        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -330,8 +370,9 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("WARNING: wan1 went up", output)
         self.assertNotIn("WARNING: wan2 went up", output)
         # 8. successful ping (uncounted) on wan1, successful ping #1 on wan2
-        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        time.sleep(5)
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
+        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -355,3 +396,7 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went down", output)
+
+    def test_dummy(self):
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
