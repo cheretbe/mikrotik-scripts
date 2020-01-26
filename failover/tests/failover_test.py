@@ -643,3 +643,6 @@ class failover_UnitTests(unittest.TestCase):
 
         # Restore normal operation
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        # Restore default route distances
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance=5")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance=10")
