@@ -182,6 +182,17 @@ class failover_UnitTests(unittest.TestCase):
         output = self.run_failover_script()
         self.assertIn("Settings have been loaded successfully", output)
 
+        # Should display an error message if settings script contains an error
+        self.upload_settings(custom_settings={
+            "failoverWan1PingSrcAddress": "172.19.10.1 error",
+            "failoverWan2PingSrcAddress": "172.19.10.2"
+        })
+        output = self.run_failover_script()
+        self.assertNotIn("Settings have been loaded successfully", output)
+        self.assertIn("ERROR: Error in 'failover_settings' script. Run '/system "
+            "script run failover_settings' in the console to view details", output)
+
+
     def test_default_parameters(self):
         # Should use default values for non-mandatory parameters
         self.upload_settings(no_default_settings=True, custom_settings={

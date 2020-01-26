@@ -77,7 +77,14 @@ if ($failoverCheckIsRunning) do={
 :set failoverCheckIsRunning true
 do {
   $LogDebugMsg debugMsg="Loading settings"
-  /system script run failover_settings
+  do {
+    /system script run failover_settings
+  } on-error={
+    :set failoverCheckIsRunning false
+    $ExitWithError errorMsg=("Error in 'failover_settings' script. " . \
+      "Run '/system script run failover_settings' in the console to view details")
+  }
+
   :global failoverWan1PingSrcAddress
   :global failoverWan2PingSrcAddress
   :global failoverSwitchRoutes
