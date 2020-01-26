@@ -64,7 +64,14 @@ class failover_UnitTests(unittest.TestCase):
             "      :set continuePing false",
             "    }",
             "  }",
-            "}"
+            "}",
+
+            "if ([:len [/system script find name=failover_on_up_down]] != 0) do={ /system script remove failover_on_up_down }",
+            "/system script add name=failover_on_up_down source=\":global failoverWan1IsUp\\r\\",
+                "\\n:global failoverWan2IsUp\\r\\",
+                "\\n:put (\\\"test_up_down: failoverWan1IsUp=\\$failoverWan1IsUp; failoverWan2IsUp=\\$failoverWan2IsUp\\\")\\r\\",
+                "\\n:put (\\\"test_up_down: wan1_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance])\\r\\",
+                "\\n:put (\\\"test_up_down: wan2_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance])\""
         )
         with open(self.temp_settings_file, "w") as f:
             for line in functions_definition:
@@ -75,9 +82,6 @@ class failover_UnitTests(unittest.TestCase):
             "test_functions_definition.rsc"),
             cwd=vagrant_path
         )
-
-    def pcc(self, dummy):
-        print(dummy)
 
     def run_failover_script(self):
         output = subprocess.check_output(("vagrant", "ssh", "router", "--",
@@ -120,8 +124,11 @@ class failover_UnitTests(unittest.TestCase):
 
     def assertSubstringIn(self, first, second):
         if not any(first in array_item for array_item in second):
-            raise AssertionError("'{}' not found is script output".format(first))
+            raise AssertionError("'{}' not found in script output".format(first))
 
+    def assertSubstringNotIn(self, first, second):
+        if any(first in array_item for array_item in second):
+            raise AssertionError("'{}' unexpectedly found in script output".format(first))
 
     def test_mandatory_parameters(self):
         # Should fail if failoverWan1PingSrcAddress is not defined
@@ -239,8 +246,6 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan2 went down", output)
         # 3. successful ping 1
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -281,8 +286,6 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("WARNING: wan2 went down", output)
         # 3. successful ping 1
         run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -326,8 +329,6 @@ class failover_UnitTests(unittest.TestCase):
         self.assertIn("WARNING: wan2 went down", output)
         # 3. successful ping #1 on wan1, wan2 is still down
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
@@ -343,9 +344,6 @@ class failover_UnitTests(unittest.TestCase):
         # 5. successful ping #1 on wan1 and #1 on wan2
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
         run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -354,9 +352,6 @@ class failover_UnitTests(unittest.TestCase):
         # 6. successful ping #2 on wan1 and #2 on wan2
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
         run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=no")
-        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -371,8 +366,6 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan2 went up", output)
         # 8. successful ping (uncounted) on wan1, successful ping #1 on wan2
         run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
-        # run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=no")
-        # time.sleep(5)
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
         self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
@@ -397,6 +390,245 @@ class failover_UnitTests(unittest.TestCase):
         self.assertNotIn("WARNING: wan1 went down", output)
         self.assertNotIn("WARNING: wan2 went down", output)
 
-    def test_dummy(self):
+    def test_route_switching(self):
+        self.upload_settings(custom_settings={"failoverSwitchRoutes": "true"})
+        # Initial state: wan1 route is active, successful pings, no route switching
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertSubstringNotIn("WARNING: wan1 went", output)
+        self.assertSubstringNotIn("WARNING: wan2 went", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+
+        # Scenario 1: wan1 route is active, wan1 goes down, wan2 is up, route switches to wan2
         run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertIn("WARNING: Switching default route to 'wan2'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 2: wan2 route is active, wan1 goes back up, wan2 is up, route switches to wan1
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertIn("WARNING: Switching default route to 'wan1'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 3: wan1 route is active, wan1 is up, wan2 goes down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 4: wan1 route is active, wan1 is up, wan2 goes back up, no route switching
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went up", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 5: wan1 route is active, wan1 and wan2 go down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 6: wan1 route is active, wan1 is down, wan2 goes up, route switches to wan2
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertIn("WARNING: wan2 went up", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertIn("WARNING: Switching default route to 'wan2'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 7: wan2 route is active, wan1 is down, wan2 goes down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 8: wan2 route is active, wan1 and wan2 are down, wan1 goes up, route switches to wan1
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan1 went up", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertIn("WARNING: Switching default route to 'wan1'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Restore normal operation
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+
+    def test_route_switching_prefer_wan2(self):
+        self.upload_settings(custom_settings={
+            "failoverSwitchRoutes": "true",
+            "failoverPreferWan2": "true"
+        })
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance=10")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance=5")
+        # Initial state: wan2 route is active, successful pings, no route switching
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertSubstringNotIn("WARNING: wan1 went", output)
+        self.assertSubstringNotIn("WARNING: wan2 went", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+
+        # Scenario 1: wan2 route is active, wan2 goes down, wan1 is up, route switches to wan1
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertIn("WARNING: Switching default route to 'wan1'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 2: wan1 route is active, wan2 goes back up, wan1 is up, route switches to wan2
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("WARNING: wan2 went up", output)
+        self.assertNotIn("WARNING: wan1 went down", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertIn("WARNING: Switching default route to 'wan2'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 3: wan2 route is active, wan2 is up, wan1 goes down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 4: wan2 route is active, wan2 is up, wan1 goes back up, no route switching
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertNotIn("WARNING: wan2 went down", output)
+        self.assertIn("WARNING: wan1 went up", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 5: wan2 route is active, wan1 and wan2 go down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        run_ros_command("/interface ethernet set [find name=\"wan2\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertIn("WARNING: wan2 went down", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Scenario 6: wan2 route is active, wan2 is down, wan1 goes up, route switches to wan1
+        run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        self.assertIn("WARNING: wan1 went up", output)
+        self.assertIn("mainRouteIsActive: true; wan1Distance: 10; wan2Distance: 5", output)
+        self.assertIn("WARNING: Switching default route to 'wan1'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=true; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 7: wan1 route is active, wan2 is down, wan1 goes down, no route switching
+        run_ros_command("/interface ethernet set [find name=\"wan1\"] disabled=yes")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertNotIn("WARNING: wan2 went up", output)
+        self.assertIn("WARNING: wan1 went down", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertSubstringNotIn("WARNING: Switching default route to", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=false", output)
+        self.assertIn("test_up_down: wan1_distance=5", output)
+        self.assertIn("test_up_down: wan2_distance=10", output)
+
+        # Scenario 8: wan1 route is active, wan1 and wan2 are down, wan2 goes up, route switches to wan2
+        run_ros_command("'$TestEnableInterface ifName=\"wan2\" pingSrcAddr=\"172.19.10.2\"'")
+        output = self.run_failover_script()
+        self.assertIn("wan1 test results [failed/threshold/total]: 1/1/1", output)
+        self.assertIn("wan2 test results [failed/threshold/total]: 0/1/1", output)
+        self.assertIn("WARNING: wan2 went up", output)
+        self.assertNotIn("WARNING: wan1 went up", output)
+        self.assertIn("mainRouteIsActive: false; wan1Distance: 5; wan2Distance: 10", output)
+        self.assertIn("WARNING: Switching default route to 'wan2'", output)
+        self.assertIn("test_up_down: failoverWan1IsUp=false; failoverWan2IsUp=true", output)
+        self.assertIn("test_up_down: wan1_distance=10", output)
+        self.assertIn("test_up_down: wan2_distance=5", output)
+
+        # Restore normal operation
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
