@@ -59,6 +59,9 @@ echo "Creating 'failover' directory"
 echo "Uploading failover_check.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRANT_VM}:failover/
 
+echo "Uploading version.txt"
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/version.txt" ${AO_MT_VAGRANT_VM}:failover/
+
 echo "Uploading write_test_settings.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/tools/write_test_settings.rsc" ${AO_MT_VAGRANT_VM}:failover/
 

@@ -92,6 +92,12 @@ class failover_UnitTests(unittest.TestCase):
             cwd=vagrant_path
         )
 
+        subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
+            os.path.realpath(script_path + "../../version.txt"),
+            "router:failover/")
+        )
+
+
     def run_failover_script(self):
         output = subprocess.check_output(("vagrant", "ssh", "router", "--",
             "/import", "failover/failover_check.rsc"),
@@ -656,3 +662,26 @@ class failover_UnitTests(unittest.TestCase):
         # Restore default route distances
         run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance=5")
         run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance=10")
+
+    def test_script_version(self):
+        # It should display current script version
+        run_ros_command(" /file set failover/version.txt contents=\"script_ver\"")
+        output = self.run_failover_script()
+        self.assertIn("Version script_ver", output)
+
+        # It should display only first line of the version file
+        run_ros_command("'/file set failover/version.txt contents=\"ver_line1\\n\\rver_line2\"'")
+        output = self.run_failover_script()
+        self.assertIn("Version ver_line1", output)
+        self.assertSubstringNotIn("rver_line2", output)
+
+        # It should display UNKNOWN if version file is missing
+        run_ros_command("/file remove failover/version.txt")
+        output = self.run_failover_script()
+        self.assertIn("Version UNKNOWN", output)
+
+        # Restore current version file
+        subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
+            os.path.realpath(script_path + "../../version.txt"),
+            "router:failover/")
+        )

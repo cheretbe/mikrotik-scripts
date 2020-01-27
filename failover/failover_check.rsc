@@ -64,8 +64,17 @@
   return ($failedHosts < $failoverMaxFailedHosts)
 }
 
-
-$LogDebugMsg debugMsg=("Version " . $failoverScriptVersion)
+:local scriptVersion
+if ([:len [/file find name="failover/version.txt"]] = 0) do={
+  :set scriptVersion "UNKNOWN"
+} else={
+  :set scriptVersion [/file get "failover/version.txt" contents]
+  # Remove \n symbol if present
+  if ([:typeof [:find $scriptVersion "\n"]] != "nil") do={
+    :set scriptVersion [:pick $scriptVersion 0 [:find $scriptVersion "\n"]]
+  }
+}
+$LogDebugMsg debugMsg=("Version $scriptVersion")
 
 :global failoverCheckIsRunning
 if ([:typeof $failoverCheckIsRunning] = "nothing") do={
