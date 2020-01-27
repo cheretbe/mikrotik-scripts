@@ -40,14 +40,23 @@ class failover_UnitTests(unittest.TestCase):
             f.write("    \\n\"\n")
 
         subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
-            self.temp_settings_file, "router:write_failover_settings.rsc"))
+            self.temp_settings_file, "router:failover/write_failover_settings.rsc"))
 
         subprocess.check_call(("vagrant", "ssh", "router", "--", "/import",
-            "write_failover_settings.rsc"),
+            "failover/write_failover_settings.rsc"),
             cwd=vagrant_path
         )
 
     def upload_helper_functions(self):
+        print("Creating 'failover' directory")
+        # There is no direct way to create a directory. This is an ugly hack
+        # https://forum.mikrotik.com/viewtopic.php?t=139071
+        subprocess.check_call(("vagrant", "ssh", "router", "--",
+            '/tool fetch dst-path="/failover/dummy" url="http://127.0.0.1:80/" keep-result=no'),
+            cwd=vagrant_path
+        )
+
+
         functions_definition = (
             ":global TestEnableInterface do={",
             "  /interface ethernet set [find name=$ifName] disabled=no;",
@@ -77,15 +86,15 @@ class failover_UnitTests(unittest.TestCase):
             for line in functions_definition:
                 f.write("{}\n".format(line))
         subprocess.check_call(("scp", "-F", self.vagrant_ssh_config,
-            self.temp_settings_file, "router:test_functions_definition.rsc"))
+            self.temp_settings_file, "router:failover/test_functions_definition.rsc"))
         subprocess.check_call(("vagrant", "ssh", "router", "--", "/import",
-            "test_functions_definition.rsc"),
+            "failover/test_functions_definition.rsc"),
             cwd=vagrant_path
         )
 
     def run_failover_script(self):
         output = subprocess.check_output(("vagrant", "ssh", "router", "--",
-            "/import", "failover_check.rsc"),
+            "/import", "failover/failover_check.rsc"),
             cwd=vagrant_path
         )
         for line in output.decode("utf-8").splitlines():
@@ -109,14 +118,15 @@ class failover_UnitTests(unittest.TestCase):
         subprocess.check_call("vagrant ssh-config router > {}".format(cls.vagrant_ssh_config),
             shell=True, cwd=vagrant_path)
 
-        failover_script_path = os.path.realpath(script_path + "../../failover_check.rsc")
-        subprocess.check_call(("scp", "-F", cls.vagrant_ssh_config,
-            failover_script_path, "router:"))
-
         fd, cls.temp_settings_file = tempfile.mkstemp()
         os.close(fd)
 
         cls.upload_helper_functions(cls)
+
+        failover_script_path = os.path.realpath(script_path + "../../failover_check.rsc")
+        subprocess.check_call(("scp", "-F", cls.vagrant_ssh_config,
+            failover_script_path, "router:failover/"))
+
 
     def teardown_class(self):
         os.remove(self.temp_settings_file)

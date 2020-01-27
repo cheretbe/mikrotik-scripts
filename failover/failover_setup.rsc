@@ -3,9 +3,9 @@
 :local scriptDstName
 
 if ([:len [/file find where name="flash" and type="directory"]] = 1) do={
-  :set scriptDstName "flash/failover_check.rsc"
+  :set scriptDstName "flash/failover/failover_check.rsc"
 } else={
-  :set scriptDstName "failover_check.rsc"
+  :set scriptDstName "failover/failover_check.rsc"
 }
 
 :local scriptSrcName "https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/master/failover/failover_check.rsc"

@@ -50,21 +50,27 @@ if [ -z ${AO_MT_VAGRANT_CONFIG+x} ]; then
   export AO_MT_VAGRANT_CONFIG
 fi
 
+
+echo "Creating 'failover' directory"
+# There is no direct way to create a directory. This is an ugly hack
+# https://forum.mikrotik.com/viewtopic.php?t=139071
+(cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- '/tool fetch dst-path="/failover/dummy" url="http://127.0.0.1:80/" keep-result=no')
+
 echo "Uploading failover_check.rsc"
-scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRANT_VM}:
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_check.rsc" ${AO_MT_VAGRANT_VM}:failover/
 
 echo "Uploading write_test_settings.rsc"
-scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/tools/write_test_settings.rsc" ${AO_MT_VAGRANT_VM}:
+scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/tools/write_test_settings.rsc" ${AO_MT_VAGRANT_VM}:failover/
 
 echo "Uploading setup.rsc"
 scp -F ${AO_MT_VAGRANT_CONFIG} "${project_dir}/failover_setup.rsc" ${AO_MT_VAGRANT_VM}:
 
 echo "Running '/import write_test_settings.rsc'"
-(cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import write_test_settings.rsc)
+(cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import failover/write_test_settings.rsc)
 
 read -p "Run failover_check.rsc? [Y/n]" -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ $REPLY = "" ]] ; then
   echo "Running '/import failover_check.rsc'"
-  (cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import failover_check.rsc)
+  (cd ${testlab_dir}; vagrant ssh ${AO_MT_VAGRANT_VM} -- /import failover/failover_check.rsc)
 fi
