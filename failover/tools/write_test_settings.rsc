@@ -16,4 +16,8 @@ if ([:len [/system script find name=failover_settings]] != 0) do={ /system scrip
     \n:global failoverWan2PingTimeout (:totime 00:00:00.055)\r\
     \n:global failoverMinPingReplies 1\r\
     \n:global failoverRecoverCount 1\r\
-    \n:global failoverMaxFailedHosts 1"
+    \n:global failoverMaxFailedHosts 1\r\
+    \n\r\
+    \n:global failoverAutoUpdate false\r\
+    \n:global failoverUpdateSendEmail false\r\
+    \n:global failoverUpdateEmailRecipient user@domain.tld"

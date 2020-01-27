@@ -1,5 +1,3 @@
-:local failoverScriptVersion "0.9"
-
 :local LogDebugMsg do={
   :log debug ("Failover script: " . $debugMsg)
   :put $debugMsg
