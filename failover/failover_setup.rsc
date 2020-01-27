@@ -13,16 +13,15 @@ if ([:len [/file find where name="flash" and type="directory"]] = 1) do={
 /tool fetch mode=https dst-path=$scriptDstName \
   url="https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/master/failover/failover_check.rsc"
 
-if ([:len [/system scheduler find name="failover_check"]] != 0) do={
-  :put "Deleting existing 'failover_check' scheduled event"
-  /system scheduler remove failover_check
+if ([:len [/system scheduler find name="failover_check"]] = 0) do={
+  :put "Adding 'failover_check' scheduled event"
+  /system scheduler add disabled=yes interval=1m name=failover_check on-event=\
+      "# https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md\r\
+      \n/import $scriptDstName" start-date=jan/01/1970 start-time=\
+      00:00:00
+} else={
+  :put "[!] Will not overwrite existing 'failover_check' scheduled event"
 }
-
-:put "Adding 'failover_check' scheduled event"
-/system scheduler add disabled=yes interval=1m name=failover_check on-event=\
-    "# https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md\r\
-    \n/import $scriptDstName" start-date=jan/01/1970 start-time=\
-    00:00:00
 
 :if ([:len [/system script find name="failover_settings"]] = 0) do={
   :put "Adding 'failover_settings' script"
