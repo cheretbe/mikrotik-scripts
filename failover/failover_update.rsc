@@ -29,6 +29,16 @@
     body=$emailBody
 }
 
+:local getSystemIdentity do={
+  :local identityStr ("\r\nRouter identity: " . [/system identity get name])
+
+  :set identityStr ($identityStr . "\r\nIP address(es):\r\n")
+  :foreach addr in=[/ip address print as-value] do={
+    :set identityStr ($identityStr . "  " . ($addr->"address") . " [" . ($addr->"interface") . "]\r\n")
+  } 
+
+  return $identityStr
+}
 
 $LogDebugMsg debugMsg=("Checking for updates")
 
@@ -89,12 +99,36 @@ if ($latestVersion = $installedVersion) do={
   $LogWarningMsg warningMsg=("There is an update from $installedVersion to $latestVersion")
   if ($failoverAutoUpdate) do={
     $LogDebugMsg debugMsg=("Updating from $installedVersion to $latestVersion")
+    do {
+      [:parse ([/tool fetch mode=https \
+        url=("https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/" . \
+          "master/failover/failover_setup.rsc") output=user as-value]->"data")]
+      $SendEmailMessage LogWarningMsg=$LogWarningMsg \
+        emailSubject=([/system identity get name] . ": Successful failover " . \
+          "script update (" . $installedVersion . " -> " . $latestVersion . ")") \
+        emailBody=("The update of failover script from version " . \
+          "$installedVersion to version $latestVersion has been successful\r\n" . \
+          [$getSystemIdentity])
+    } on-error={
+      $SendEmailMessage LogWarningMsg=$LogWarningMsg \
+        emailSubject=("ERROR - " . [/system identity get name] . ": Failover " . \
+          "script update has failed (" . $installedVersion . " -> " . $latestVersion . ")") \
+        emailBody=("Error executing https://raw.githubusercontent" \
+        . ".com/cheretbe/mikrotik-scripts/master/failover/failover_setup.rsc\r\n" . \
+          [$getSystemIdentity] . "\r\nRefer to device's log for details")
+
+      $ExitWithError errorMsg=("Error executing https://raw.githubusercontent" \
+        . ".com/cheretbe/mikrotik-scripts/master/failover/failover_setup.rsc")
+    }
   } else={
     $SendEmailMessage LogWarningMsg=$LogWarningMsg \
-      emailSubject=([/system identity get name] . ": Failover script update is available") \
+      emailSubject=([/system identity get name] . ": Failover script update is " . \
+        "available (" . $installedVersion . " -> " . $latestVersion . ")") \
       emailBody=("There is an update to failover script from version " . \
-        "$installedVersion to version $latestVersion on router '" . \
-        [/system identity get name] . "'\r\nMore info: " . \
+        "$installedVersion to version $latestVersion\r\n" . \
+        [$getSystemIdentity] . "\r\nMore info: " . \
         "https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md")
   }
 }
+
+$LogDebugMsg debugMsg=("Done")
