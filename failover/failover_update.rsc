@@ -103,6 +103,7 @@ if ($latestVersion = $installedVersion) do={
       [:parse ([/tool fetch mode=https \
         url=("https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/" . \
           "master/failover/failover_setup.rsc") output=user as-value]->"data")]
+      $LogWarningMsg warningMsg=("Successful update from $installedVersion to $latestVersion")
       $SendEmailMessage LogWarningMsg=$LogWarningMsg \
         emailSubject=([/system identity get name] . ": Successful failover " . \
           "script update (" . $installedVersion . " -> " . $latestVersion . ")") \
