@@ -1,3 +1,8 @@
+# Do not change this script
+# Settings are in 'failover_settings' script ("System" > "Scripts" in WinBox
+# or '/system script edit value-name=source failover_settings' in console)
+# https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md
+
 :local LogDebugMsg do={
   :log debug ("Failover update script: " . $debugMsg)
   :put $debugMsg
