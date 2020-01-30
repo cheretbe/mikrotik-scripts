@@ -98,3 +98,8 @@
   /ip firewall nat add action=masquerade chain=srcnat \
     comment="NAT wan2 test connections" out-interface=wan2 src-address=172.19.10.2
 }
+
+if ([/ip dns get servers ] = "") do={
+  :put "Setting 1.1.1.1 as DNS server"
+  /ip dns set servers="1.1.1.1" 
+}
