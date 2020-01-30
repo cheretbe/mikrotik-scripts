@@ -1,8 +1,13 @@
 #### Installation
 
 ```
+# One-liner without creating a temporary file
+[:parse ([/tool fetch mode=https url="https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/master/failover/failover_setup.rsc" output=user as-value]->"data")]
+
+# Alternative method with a temporary file
 /tool fetch mode=https url="https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/master/failover/failover_setup.rsc"
 /import failover_setup.rsc
+/file remove failover_setup.rsc
 ```
 
 #### Configuration options
