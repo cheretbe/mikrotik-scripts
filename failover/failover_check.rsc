@@ -67,11 +67,17 @@
   return ($failedHosts < $failoverMaxFailedHosts)
 }
 
+:local versionFileName
+if ([:len [/file find where name="flash" and type="directory"]] = 1) do={
+  :set versionFileName "flash/failover/version.txt"
+} else={
+  :set versionFileName "failover/version.txt"
+}
 :local scriptVersion
-if ([:len [/file find name="failover/version.txt"]] = 0) do={
+if ([:len [/file find name=$versionFileName]] = 0) do={
   :set scriptVersion "UNKNOWN"
 } else={
-  :set scriptVersion [/file get "failover/version.txt" contents]
+  :set scriptVersion [/file get $versionFileName contents]
   # Remove \n symbol if present
   if ([:typeof [:find $scriptVersion "\n"]] != "nil") do={
     :set scriptVersion [:pick $scriptVersion 0 [:find $scriptVersion "\n"]]
