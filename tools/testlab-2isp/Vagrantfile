@@ -1,49 +1,3 @@
-require "open3"
-
-# Custom plugin to work around the following issue:
-# https://github.com/hashicorp/vagrant/issues/9846
-class CustomProvisionPlugin < Vagrant.plugin('2')
-  class CustomProvisionAction
-    def initialize(app, env)
-      @app = app
-    end
-
-    def call(env)
-      @app.call(env)
-      machine = env[:machine]
-      class << machine
-        attr_accessor :custom_provision_enabled
-      end
-      machine.custom_provision_enabled = env[:provision_enabled]
-    end
-  end
-
-  name "custom_provision"
-
-  action_hook "custom_provision" do |hook|
-    hook.after Vagrant::Action::Builtin::Provision, CustomProvisionAction
-  end
-end
-
-def upload_ros_file(machine, source_file_path, target_file_path)
-  machine.ui.detail("Uploading file '#{source_file_path}' as '#{target_file_path}'")
-  machine.communicate.upload(source_file_path, target_file_path)
-end
-
-def run_ros_command(machine, ros_command)
-  machine.ui.detail("Executing '#{ros_command}'")
-
-  has_error = true
-  # https://docs.ruby-lang.org/en/2.5.0/Open3.html
-  Open3.popen2e("vagrant", "ssh", "#{machine.name}", "--", ros_command) do |stdin, stdout_stderr, status_thread|
-    stdout_stderr.each_line do |line|
-      machine.ui.detail(line)
-      has_error = false if line.include?("Script file loaded and executed successfully")
-    end
-    raise "ROS command failed"  unless status_thread.value.success?
-    raise "ROS command failed" if has_error
-  end
-end
 
 Vagrant.configure("2") do |config|
   config.vm.define :isp1 do |isp1|
@@ -93,13 +47,10 @@ Vagrant.configure("2") do |config|
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp1", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp2", auto_config: false
 
-    router.trigger.after :up, :provision, :reload, :resume do |trigger|
-      trigger.ruby do |env,machine|
-        if machine.custom_provision_enabled then
-          upload_ros_file(machine, "router_provision.rsc", "router_provision.rsc")
-          run_ros_command(machine, "/import router_provision.rsc")
-        end
-      end
-    end
+    config.vm.provision "routeros_file", name: "Upload provision script",
+      source: "router_provision.rsc", destination: "router_provision.rsc"
+
+    config.vm.provision "routeros_command", name: "Run provision script",
+      command: "/import router_provision.rsc"
   end
 end
