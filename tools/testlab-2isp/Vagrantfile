@@ -47,10 +47,10 @@ Vagrant.configure("2") do |config|
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp1", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp2", auto_config: false
 
-    config.vm.provision "routeros_file", name: "Upload provision script",
+    router.vm.provision "routeros_file", name: "Upload provision script",
       source: "router_provision.rsc", destination: "router_provision.rsc"
 
-    config.vm.provision "routeros_command", name: "Run provision script",
+    router.vm.provision "routeros_command", name: "Run provision script",
       command: "/import router_provision.rsc"
   end
 end
