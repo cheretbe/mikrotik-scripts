@@ -1,3 +1,13 @@
+### Maintenance
+
+```
+:put [/file get failover/version.txt contents]
+/log print where (topics="script;warning" or topics="script;info") and message~"Failover"
+
+:set failoverWan1PrevState 0
+:set failoverWan2PrevState 0
+```
+
 #### Installation
 
 ```
@@ -11,6 +21,12 @@
 ```
 
 #### Configuration options
+
+```
+:global failoverWan1DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway="wan" and !routing-mark]
+:global failoverWan2DefaultRoute [/ip route find dst-address=0.0.0.0/0 and gateway=192.168.7.6 and !routing-mark]
+:global failoverSwitchRoutes true
+```
 
 | Option                     | Required  | Default<br>Value   | Description |
 | -------------------------- | --------- | ------------------ | ----------- |
