@@ -1,5 +1,8 @@
 # https://github.com/cheretbe/mikrotik-scripts/blob/master/cloudflare-dns/README.md
 
+:put "WARNING: Using default template for 'cloudflare_dns_settins' script. Change parameters here"
+:log warning ("Using default template for 'cloudflare_dns_settins' script. Change parameters here")
+
 # Mandatory parameters
 # :global cfdnsAPIAuthEmail "user@domain.tld"
 # :global cfdnsAPIAuthKey   "000000000000000"
