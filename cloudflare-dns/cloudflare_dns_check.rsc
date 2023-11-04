@@ -64,13 +64,12 @@
       ]
       # $LogDebugMsg debugMsg=($apiResponse)
     } on-error= {
-      $LogErrorMsg errorMsg=("API error: " . $apiResponse)
+      $LogErrorMsg errorMsg=("API error in $httpMethod method for $apiUrl " . $apiResponse)
       :return {apiresponse=$apiResponse; success=false}
     }
     :return {apiresponse=$apiResponse; success=true}
   }
 
-  :global cfdnsPreviousAddresses
   :local checkResult true
 
   $LogDebugMsg debugMsg=("Checking DNS for ". ($mapping->"interface") . " interface")
@@ -95,9 +94,6 @@
     } else={
       :set checkResult false
     }
-  }
-  if ($checkResult) do={
-    :set ($cfdnsPreviousAddresses->($mapping->"interface")) $currentIfIP
   }
   :return $checkResult
 }
@@ -179,20 +175,18 @@ do {
         $LogInfoMsg infoMsg=(($mapping->"interface") . " IP has changed " . ($cfdnsPreviousAddresses->($mapping->"interface")) . \
           " => " . $currentIfIP . ", will check DNS records")
         :set needIfCheck true
+        :set ($cfdnsPreviousAddresses->($mapping->"interface")) $currentIfIP
       }
     }
 
-    :put ("APIcheckSuccessful: $APIcheckSuccessful")
     if (($currentIfIP != "none") and ($needAPICheck or $needIfCheck)) do={
       :local ifCheckResult [$checkIfDNSRecords mapping=$mapping currentIfIP=$currentIfIP LogDebugMsg=$LogDebugMsg LogInfoMsg=$LogInfoMsg LogErrorMsg=$LogErrorMsg]
       if (!$ifCheckResult) do={
         :set APIcheckSuccessful false
       }
-      :put ("APIcheckSuccessful: $APIcheckSuccessful")
     }
   }
 
-  :put ("APIcheckSuccessful: $APIcheckSuccessful")
   if ($APIcheckSuccessful) do={
     $LogDebugMsg debugMsg=("Setting cfdnsLastAPICheck")
     :set cfdnsLastAPICheck [/system resource get uptime]
