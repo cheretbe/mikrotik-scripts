@@ -1,0 +1,122 @@
+---
+
+- name: Install script to Mikrotik router
+  hosts: "{{ ansible_limit | default(omit) }}"
+  gather_facts: false
+  vars:
+    _ms_installed_version_commit: ""
+  module_defaults:
+    group/community.routeros.api:
+      hostname: "{{ mikrotik_host_name | default(inventory_hostname) }}"
+      password: "{{ mikrotik_api_password }}"
+      username: "{{ ansible_user }}"
+      tls: "{{ mikrotik_use_tls | default(true) }}"
+      validate_certs: "{{ mikrotik_use_tls | default(true) }}"
+      validate_cert_hostname: "{{ mikrotik_use_tls | default(true) }}"
+  tasks:
+
+    - name: Check that mandatory variables are defined
+      ansible.builtin.assert:
+        that:
+          - ms_install_script_name is defined
+        quiet: true
+
+    - name: Check for flash directory presence
+      community.routeros.api:
+        path: file
+        extended_query:
+          attributes:
+            - name
+            - type
+          where:
+            - {attribute: "type", is: "==", value: "directory"}
+            - {attribute: "name", is: "==", value: "flash"}
+      register: __ms_flash_directory
+
+    - name: Set target path for script installation
+      ansible.builtin.set_fact:
+        _ms_install_dst_path: "{{ '' if (__ms_flash_directory.msg | length) == 0 else 'flash/' }}scripts/{{ ms_install_script_name }}"
+
+    - name: Get current master branch info
+      uri:
+        url: "https://api.github.com/repos/cheretbe/mikrotik-scripts/branches/{{ ms_install_branch | default('master') }}"
+        headers:
+          Accept: "application/vnd.github+json"
+      register: __ms_source_master_branch
+
+    - name: Get installed version file info
+      community.routeros.api:
+        path: file
+        query: "name contents WHERE name == {{ _ms_install_dst_path }}/git_commit_sha.txt"
+      register: __ms_installed_version_file
+
+    - name: Get installed version commit
+      ansible.builtin.set_fact:
+        _ms_installed_version_commit: "{{ __ms_installed_version_file.msg[0].contents }}"
+      when: __ms_installed_version_file.msg[0].contents is defined
+
+    - name: Install or update script
+      when: _ms_installed_version_commit != __ms_source_master_branch.json.commit.sha
+      block:
+        - name: Include script installation settings
+          ansible.builtin.include_vars:
+            file: "{{ playbook_dir }}/../../{{ ms_install_script_name }}/install.yml"
+
+        - name: Download files
+          community.routeros.api:
+            path: tool
+            cmd: >-
+              fetch mode=https
+              url={{
+                'https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/' ~ 
+                (ms_install_branch | default('master')) ~ 
+                '/cloudflare-dns/' ~ _ms_install_file.source | community.routeros.quote_argument_value
+              }}
+              dst-path={{ _ms_install_dst_path ~ '/' ~ _ms_install_file.dst | community.routeros.quote_argument_value }}
+          loop: "{{ ms_install.files }}"
+          loop_control:
+            loop_var: _ms_install_file
+            label: "{{ _ms_install_file.source }}"
+
+        - name: Download an install scripts
+          ansible.builtin.include_tasks:
+            file: download_and_install_script_item.yml
+          loop: "{{ ms_install.scripts }}"
+          loop_control:
+            loop_var: _ms_install_script
+            label: "{{ _ms_install_script.name }}"
+
+        - name: Create scheduled tasks
+          ansible.builtin.include_tasks:
+            file: create_scheduled_task.yml
+          loop: "{{ ms_install.scheduled_tasks }}"
+          loop_control:
+            loop_var: _ms_install_scheduled_task
+            label: "{{ _ms_install_scheduled_task.name }}"
+
+          # RouterOS 7.9beta2 adds posibility to directly create a file:
+          # /file add name=my_file
+          # But as long we support ROS 7 we stick with the following hack:
+          #   /system license print file=my_file
+          #   /file set [find name="my_file.txt"] contents="new contents"
+          # The idea is that we print just anything to a file (and it's being created),
+          # then just use it. [!] Note that it adds ".txt" extension if you don't
+          # specify one.
+        - name: Create installed version commit file
+          community.routeros.api:
+            path: system license
+            cmd: >-
+              print file={{ _ms_install_dst_path }}/git_commit_sha.txt
+
+        - name: Get installed version commit file id
+          community.routeros.api:
+            path: file
+            query: ".id name WHERE name == {{ _ms_install_dst_path }}/git_commit_sha.txt"
+          register: __ms_installed_version_file
+
+        - name: Write installed version commit
+          community.routeros.api:
+            path: file
+            update: >-
+              .id={{ __ms_installed_version_file.msg[0]['.id'] }}
+              contents={{ __ms_source_master_branch.json.commit.sha }}

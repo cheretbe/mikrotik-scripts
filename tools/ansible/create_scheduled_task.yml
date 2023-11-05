@@ -1,0 +1,25 @@
+---
+
+- name: Query existing scheduled task object
+  community.routeros.api:
+    path: system scheduler
+    query: "name WHERE name == {{ _ms_install_scheduled_task.name | community.routeros.quote_argument_value }}"
+  register: __ms_installed_scheduled_task
+
+- name: Check if scheduled task already exists
+  ansible.builtin.set_fact:
+    _ms_scheduled_task_is_present: "{{ (__ms_installed_scheduled_task.msg | json_query(_ms_task_selection_query) | length) != 0 }}"
+  vars:
+    _ms_task_selection_query: "[?name=='{{ _ms_install_scheduled_task.name }}']"
+
+- name: Create scheduled task
+  community.routeros.api:
+    path: system scheduler
+    cmd: >-
+      add name={{ _ms_install_scheduled_task.name | community.routeros.quote_argument_value }}
+      start-date={{ _ms_install_scheduled_task.start_date }}
+      start-time={{ _ms_install_scheduled_task.start_time }}
+      disabled={{ 'yes' if _ms_install_scheduled_task.disabled else 'no' }}
+      on-event={{ _ms_install_scheduled_task.on_event | community.routeros.quote_argument_value }}
+  when: not _ms_scheduled_task_is_present|bool
+

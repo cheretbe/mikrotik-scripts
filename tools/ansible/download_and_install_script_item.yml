@@ -1,0 +1,44 @@
+---
+
+- name: Query installed script object
+  community.routeros.api:
+    path: system script
+    query: ".id name WHERE name == {{ _ms_install_script.name }}"
+  register: __ms_installed_script
+
+- name: Check if script already exists
+  ansible.builtin.set_fact:
+    _ms_script_is_present: "{{ (__ms_installed_script.msg | json_query(_ms_script_selection_query) | length) != 0 }}"
+  vars:
+    _ms_script_selection_query: "[?name=='{{ _ms_install_script.name }}']"
+
+- name: Download script contents
+  community.routeros.api:
+    path: tool
+    cmd: >-
+      fetch mode=https
+      url={{
+        'https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/' ~ 
+        (ms_install_branch | default('master')) ~ 
+        '/cloudflare-dns/' ~ _ms_install_script.source | community.routeros.quote_argument_value
+      }}
+      as-value=yes output=user
+  when: (not _ms_script_is_present|bool) or _ms_install_script.overwrite
+  register:
+    __ms_script_content
+
+- name: Delete existing script object in overwrite mode
+  community.routeros.api:
+    path: system script
+    remove: "{{ __ms_installed_script.msg[0]['.id'] }}"
+  when: _ms_script_is_present|bool and _ms_install_script.overwrite
+
+- name: Create script object
+  community.routeros.api:
+    path: system script
+    cmd: >-
+      add name={{ _ms_install_script.name }}
+      source={{ __ms_script_content.msg | json_query(_ms_content_selection_query) | community.routeros.quote_argument_value }}
+  vars:
+    _ms_content_selection_query: "[?status=='finished'].data|[0]"
+  when: (not _ms_script_is_present|bool) or _ms_install_script.overwrite
