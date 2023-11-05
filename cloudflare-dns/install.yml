@@ -14,6 +14,7 @@ ms_install:
     - name: Cloudflare DNS check
       start_date: "jan/01/1970"
       start_time: "00:00:00"
+      interval: 1m
       disabled: true
       on_event: |
         /import file=scripts/cloudflare-dns/cloudflare_dns_check.rsc
