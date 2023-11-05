@@ -30,7 +30,7 @@
             - type
           where:
             - {attribute: "type", is: "==", value: "directory"}
-            - {attribute: "name", is: "==", value: "flash"}
+            - {attribute: "name", is: "==", value: "flash/skins"}
       register: __ms_flash_directory
 
     - name: Set target path for script installation
