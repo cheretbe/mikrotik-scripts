@@ -1,6 +1,12 @@
 * :bulb: If future me comes here for a very complicated config example, [there it is](https://github.com/cheretbe/notes/blob/master/mikrotik/README.md#complicated-config-example).
 
 
+```shell
+# For 'develop' branch
+# -e ms_install_branch=develop
+ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare-dns"
+```
+
 Debugging
 ```
 /log print follow  where (topics~"script" and message~"Cloudflare")

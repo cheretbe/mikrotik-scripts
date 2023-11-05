@@ -1,0 +1,19 @@
+---
+
+ms_install:
+  files:
+    - source: cloudflare_dns_check.rsc
+      dst: cloudflare_dns_check.rsc
+    - source: README.md
+      dst: README.md
+  scripts:
+    - source: cloudflare_dns_settings.example
+      name: cloudflare_dns_settings2
+      overwrite: false
+  scheduled_tasks:
+    - name: Cloudflare DNS check
+      start_date: "jan/01/1970"
+      start_time: "00:00:00"
+      disabled: true
+      on_event: |
+        /import file=scripts/cloudflare-dns/cloudflare_dns_check.rsc
