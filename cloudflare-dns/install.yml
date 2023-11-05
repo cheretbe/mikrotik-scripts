@@ -8,7 +8,7 @@ ms_install:
       dst: README.md
   scripts:
     - source: cloudflare_dns_settings.example
-      name: cloudflare_dns_settings2
+      name: cloudflare_dns_settings
       overwrite: false
   scheduled_tasks:
     - name: Cloudflare DNS check
