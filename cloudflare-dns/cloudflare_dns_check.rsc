@@ -187,7 +187,7 @@ do {
     }
   }
 
-  if ($APIcheckSuccessful) do={
+  if ($needAPICheck and $APIcheckSuccessful) do={
     $LogDebugMsg debugMsg=("Setting cfdnsLastAPICheck")
     :set cfdnsLastAPICheck [/system resource get uptime]
   }
