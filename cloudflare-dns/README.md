@@ -5,11 +5,31 @@
 # For 'develop' branch
 # -e ms_install_branch=develop
 ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare-dns"
+
+# Apply host settings from inventory (see example below)
+ansible-playbook ~/projects/mikrotik-scripts/cloudflare-dns/update_settings.yml -l nosova-gw.lan.chere.one
+```
+
+Inventory host settings example
+```yaml
+mt_cloudflare_api_email: user@domain.tld
+mt_cloudflare_api_token: token_value
+
+mt_cloudflare_dns:
+  - interface: wan1
+    records:
+      - {name: "host-1.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
+      - {name: "host-2.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
+  - interface: wan2
+    records:
+      - {name: "host-1.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
+      - {name: "host-2.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
 ```
 
 Debugging
 ```
 /log print follow  where (topics~"script" and message~"Cloudflare")
+/system script environment print terse where name~"^cfdns"
 /system script environment remove [find name~"^cfdns"]
 
 python3 -m http.server 8008 --bind 192.168.56.1
