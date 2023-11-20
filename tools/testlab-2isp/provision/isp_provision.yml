@@ -3,17 +3,17 @@
   hosts: all
 
   tasks:
-    - name: Install needed packages
+    - name: Install required packages
       apt:
         name:  ["iptables-persistent"]
-        # Fix for warning message "Could not find aptitude. Using apt-get instead"
-        force_apt_get: yes
         update_cache: yes
+      become: true
 
     - name: Enable IP forwarding
       sysctl:
         name: net.ipv4.ip_forward
         value: '1'
+      become: true
 
     - name: "Enable NAT from {{ nat_source }}"
       iptables:
@@ -21,6 +21,7 @@
         chain: POSTROUTING
         source: "{{ nat_source }}"
         jump: MASQUERADE
+      become: true
       notify:
         - Save iptables
 
@@ -28,3 +29,4 @@
     - name: Save iptables v4 rules
       shell: iptables-save > /etc/iptables/rules.v4
       listen: Save iptables
+      become: true

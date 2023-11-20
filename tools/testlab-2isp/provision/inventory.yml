@@ -1,0 +1,13 @@
+---
+
+all:
+  vars:
+    ansible_user: vagrant
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+  hosts:
+    isp1:
+      ansible_host: 192.168.80.11
+      ansible_ssh_pass: "vagrant"
+    isp2:
+      ansible_host: 192.168.80.12
+      ansible_ssh_pass: "vagrant"

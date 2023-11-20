@@ -1,5 +1,84 @@
+class CustomAnsibleError < Vagrant::Errors::VagrantError
+  error_message(
+    "Ansible provision failed to complete successfully. Any error output should be visible above"
+  )
+end
+
+class CustomProvisionPlugin < Vagrant.plugin('2')
+  class CustomProvisionAction
+    def initialize(app, env)
+      @app = app
+    end
+
+    def call(env)
+      @app.call(env)
+      machine = env[:machine]
+      class << machine
+        attr_accessor :custom_provision_enabled
+      end
+      machine.custom_provision_enabled = env[:provision_enabled]
+    end
+  end
+
+  name "custom_provision"
+
+  action_hook "custom_provision" do |hook|
+    hook.after Vagrant::Action::Builtin::Provision, CustomProvisionAction
+  end
+end
+
+def do_host_ansible_provision(machine, target_host, playbook, extra_vars: {})
+  machine.ui.detail("Provisioning with Ansible playbook '#{playbook}'")
+  env_variables = "PYTHONUNBUFFERED=1 ANSIBLE_SSH_RETRIES=3"
+  env_variables += " ANSIBLE_FORCE_COLOR=true" if machine.env.ui.color?
+
+  command = "#{env_variables} "\
+            "/home/vagrant/.cache/venv/ansible/bin/ansible-playbook "\
+            "-i /vagrant/provision/inventory.yml "\
+            "-l #{target_host} --extra-vars #{extra_vars.to_json.shellescape} "\
+            "/vagrant/provision/#{playbook}"
+  Vagrant.global_logger.info("Ansible command: #{command}")
+
+  ansible_controller = machine.env.machine(:"ansible-controller", :virtualbox)
+  ansible_controller.communicate.execute("rm ~/.ssh/known_hosts", error_check: false)
+  result = ansible_controller.communicate.execute(command, error_check: false) do |type, data|
+    if [:stderr, :stdout].include?(type)
+      machine.env.ui.info(data, new_line: false, prefix: false)
+    end
+  end
+  raise CustomAnsibleError if result != 0
+end
+
+def ansible_provision(config, playbook, extra_vars: {})
+  config.trigger.after [:up, :reload, :provision, :snapshot_restore] do |trigger|
+    trigger.ruby do |env,machine|
+      if machine.state.id == :running and machine.custom_provision_enabled
+        # machine.ui.warn(machine.name)
+        # machine.ui.warn(extra_vars)
+        do_host_ansible_provision machine,
+          target_host=machine.name,
+          playbook=playbook,
+          extra_vars: extra_vars
+      end
+    end
+  end
+end
+
 
 Vagrant.configure("2") do |config|
+
+  config.vm.define :"ansible-controller" do |ansible_controller|
+    ansible_controller.vm.box = "cheretbe/ansible-controller"
+    ansible_controller.vm.hostname = "ansible-controller"
+    ansible_controller.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--groups", "/__vagrant"]
+    end
+    ansible_controller.vm.network "private_network", ip: "192.168.80.10", virtualbox__intnet: "vagrant-intnet"
+
+    ansible_controller.vm.synced_folder "/", "/host"
+    ansible_controller.vm.synced_folder Dir.home, "/host_home"
+  end
+
   config.vm.define :isp1 do |isp1|
     isp1.vm.box = "ubuntu/xenial64"
     isp1.vm.hostname = "isp1"
@@ -8,15 +87,22 @@ Vagrant.configure("2") do |config|
       vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
     end
     isp1.vm.network "private_network", ip: "192.168.120.10", virtualbox__intnet: "vagrant-isp1"
+    isp1.vm.network "private_network", ip: "192.168.80.11",
+      virtualbox__intnet: "vagrant-intnet"
 
-    isp1.vm.provision "ansible_local" do |ansible|
-      ansible.playbook = "isp_provision.yml"
-      ansible.compatibility_mode = "2.0"
-      ansible.become = true
-      ansible.extra_vars = {
+    isp1.vm.provision "shell", name: "Enable cleartext passwords for SSH",
+      keep_color: true,
+      inline: <<-SHELL
+        set -euo pipefail
+        sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+        systemctl restart sshd
+      SHELL
+
+    ansible_provision isp1,
+      playbook="isp_provision.yml",
+      extra_vars: {
         nat_source: "192.168.120.0/24"
       }
-    end
   end
 
   config.vm.define :isp2 do |isp2|
@@ -26,16 +112,23 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--groups", "/__vagrant"]
       vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
     end
+    isp2.vm.network "private_network", ip: "192.168.80.12",
+      virtualbox__intnet: "vagrant-intnet"
     isp2.vm.network "private_network", ip: "192.168.121.10", virtualbox__intnet: "vagrant-isp2"
 
-    isp2.vm.provision "ansible_local" do |ansible|
-      ansible.playbook = "isp_provision.yml"
-      ansible.compatibility_mode = "2.0"
-      ansible.become = true
-      ansible.extra_vars = {
+    isp2.vm.provision "shell", name: "Enable cleartext passwords for SSH",
+      keep_color: true,
+      inline: <<-SHELL
+        set -euo pipefail
+        sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+        systemctl restart sshd
+      SHELL
+
+    ansible_provision isp2,
+      playbook="isp_provision.yml",
+      extra_vars: {
         nat_source: "192.168.121.0/24"
       }
-    end
   end
 
   config.vm.define :"router" do |router|
@@ -48,7 +141,7 @@ Vagrant.configure("2") do |config|
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp2", auto_config: false
 
     router.vm.provision "routeros_file", name: "Upload provision script",
-      source: "router_provision.rsc", destination: "router_provision.rsc"
+      source: "provision/router_provision.rsc", destination: "router_provision.rsc"
 
     router.vm.provision "routeros_command", name: "Run provision script",
       command: "/import router_provision.rsc"
