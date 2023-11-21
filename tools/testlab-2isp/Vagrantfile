@@ -138,6 +138,7 @@ Vagrant.configure("2") do |config|
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp1", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp2", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-intnet", auto_config: false
+    config.vm.network "forwarded_port", guest: 8728, host: 8728
 
     router.vm.provision "routeros_command", name: "Run provision script",
       command: 'global vmNICMACs; '\

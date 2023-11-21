@@ -1,0 +1,7 @@
+---
+
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: community.routeros.routeros
+mikrotik_api_password: vagrant
+mikrotik_host_name: localhost
+mikrotik_use_tls: false
