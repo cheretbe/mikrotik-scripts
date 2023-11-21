@@ -70,7 +70,7 @@
               url={{
                 'https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/' ~ 
                 (ms_install_branch | default('master')) ~ 
-                '/cloudflare-dns/' ~ _ms_install_file.source | community.routeros.quote_argument_value
+                '/' ~ ms_install_script_name ~ '/' ~ _ms_install_file.source | community.routeros.quote_argument_value
               }}
               dst-path={{ _ms_install_dst_path ~ '/' ~ _ms_install_file.dst | community.routeros.quote_argument_value }}
           loop: "{{ ms_install.files }}"

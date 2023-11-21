@@ -1,0 +1,21 @@
+---
+
+ms_install:
+  files:
+    - source: failover_check.rsc
+      dst: failover_check.rsc
+  scripts:
+    - source: failover_settings.example
+      name: failover_settings
+      overwrite: false
+    - source: failover_on_up_down.example
+      name: failover_on_up_down
+      overwrite: false
+  scheduled_tasks:
+    - name: Failover check
+      start_date: "jan/01/1970"
+      start_time: "00:00:00"
+      interval: 1m
+      disabled: true
+      on_event: |
+        /import file=scripts/failover/failover_check.rsc
