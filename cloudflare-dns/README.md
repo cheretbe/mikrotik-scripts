@@ -1,5 +1,7 @@
 * :bulb: If future me comes here for a very complicated config example, [there it is](https://github.com/cheretbe/notes/blob/master/mikrotik/README.md#complicated-config-example).
 
+**TODO:** Switch from using [API keys](https://developers.cloudflare.com/fundamentals/api/get-started/keys/) to [API tokens](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
+
 
 ```shell
 # For 'develop' branch
@@ -7,7 +9,7 @@
 ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare-dns"
 
 # Apply host settings from inventory (see example below)
-ansible-playbook ~/projects/mikrotik-scripts/cloudflare-dns/update_settings.yml -l nosova-gw.lan.chere.one
+ansible-playbook ~/projects/mikrotik-scripts/cloudflare-dns/update_settings.yml -l host.domain.tld
 ```
 
 Inventory host settings example
