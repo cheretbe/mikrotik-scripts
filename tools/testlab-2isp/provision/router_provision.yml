@@ -1,0 +1,114 @@
+---
+
+- name: Router Provision
+  hosts: all
+  gather_facts: false
+  module_defaults:
+    group/community.routeros.api:
+      hostname: "{{ mikrotik_host_name }}"
+      password: "{{ mikrotik_api_password }}"
+      username: "{{ ansible_user }}"
+      tls: false
+  tasks:
+
+    - name: Set router identity
+      community.routeros.api_modify:
+        path: system identity
+        data:
+          - name: router
+        timeout: 30
+
+    - name: Query NIC MACs
+      community.routeros.api:
+        path: "system script environment"
+        query: "name value WHERE name == vmNICMACs"
+      register: __rp_nic_macs_query_result
+
+    - name: Set array of NIC MAC addresses
+      ansible.builtin.set_fact:
+        _rp_nic_macs: "{{ __rp_nic_macs_query_result.msg[0].value | split(';') }}"
+
+    - name: Set interface names
+      community.routeros.api_find_and_modify:
+        path: interface ethernet
+        find:
+          "mac-address": "{{ _rp_nic_data.mac }}"
+        values:
+          name: "{{ _rp_nic_data.name }}"
+      loop:
+        - name: lan
+          mac: "{{ _rp_nic_macs[2] }}"
+        - name: wan1
+          mac: "{{ _rp_nic_macs[3] }}"
+        - name: wan2
+          mac: "{{ _rp_nic_macs[4] }}"
+        - name: ansible
+          mac: "{{ _rp_nic_macs[5] }}"
+      loop_control:
+        loop_var: _rp_nic_data
+        label: "{{ _rp_nic_data.name }}"
+
+    - name: Create bridges
+      community.routeros.api_modify:
+        path: interface bridge
+        data:
+          - {name: loopback-force-wan1}
+          - {name: loopback-force-wan2}
+        handle_absent_entries: remove
+        handle_entries_content: remove_as_much_as_possible
+
+    - name: Add IP addresses
+      community.routeros.api_modify:
+        path: ip address
+        data:
+          - {interface: wan1, address: "192.168.120.11/24" }
+          - {interface: wan2, address: "192.168.121.11/24" }
+          - {interface: loopback-force-wan1, address: "172.19.10.1/32" }
+          - {interface: loopback-force-wan2, address: "172.19.10.2/32" }
+
+    - name: Add routes
+      community.routeros.api_modify:
+        path: ip route
+        data:
+          - {distance: 5,  gateway: "192.168.120.10" }
+          - {distance: 10, gateway: "192.168.121.10" }
+          - {distance: 30, gateway: "192.168.120.10", routing-mark: wan1, comment: "Force wan1" }
+          - {distance: 30, gateway: "192.168.121.10", routing-mark: wan2, comment: "Force wan2" }
+
+    - name: Add firewall mangle rules
+      community.routeros.api_modify:
+        path: ip firewall mangle
+        data:
+          - action: mark-routing
+            chain: output
+            comment: "Force wan1 test connections to be routed through wan1"
+            "new-routing-mark": wan1
+            passthrough: no
+            src-address: "172.19.10.1"
+          - action: mark-routing
+            chain: output
+            comment: "Force wan2 test connections to be routed through wan2"
+            "new-routing-mark": wan2
+            passthrough: no
+            src-address: "172.19.10.2"
+
+    - name: Add NAT rules
+      community.routeros.api_modify:
+        path: ip firewall nat
+        data:
+          - action: masquerade
+            chain: srcnat
+            comment: "NAT wan1 test connections"
+            out-interface: wan1
+            src-address: "172.19.10.1"
+          - action: masquerade
+            chain: srcnat
+            comment: "NAT wan2 test connections"
+            out-interface: wan2
+            src-address: "172.19.10.2"
+
+    - name: Set DNS server to 1.1.1.1
+      community.routeros.api_modify:
+        path: ip dns
+        data:
+          - servers: "1.1.1.1"
