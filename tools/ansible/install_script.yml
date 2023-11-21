@@ -37,12 +37,12 @@
       ansible.builtin.set_fact:
         _ms_install_dst_path: "{{ '' if (__ms_flash_directory.msg | length) == 0 else 'flash/' }}scripts/{{ ms_install_script_name }}"
 
-    - name: Get current master branch info
+    - name: Get current source branch info
       uri:
         url: "https://api.github.com/repos/cheretbe/mikrotik-scripts/branches/{{ ms_install_branch | default('master') }}"
         headers:
           Accept: "application/vnd.github+json"
-      register: __ms_source_master_branch
+      register: __ms_source_branch
 
     - name: Get installed version file info
       community.routeros.api:
@@ -56,7 +56,7 @@
       when: __ms_installed_version_file.msg[0].contents is defined
 
     - name: Install or update script
-      when: _ms_installed_version_commit != __ms_source_master_branch.json.commit.sha
+      when: _ms_installed_version_commit != __ms_source_branch.json.commit.sha
       block:
         - name: Include script installation settings
           ansible.builtin.include_vars:
@@ -119,4 +119,4 @@
             path: file
             update: >-
               .id={{ __ms_installed_version_file.msg[0]['.id'] }}
-              contents={{ __ms_source_master_branch.json.commit.sha }}
+              contents={{ __ms_source_branch.json.commit.sha }}

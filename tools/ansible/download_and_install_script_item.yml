@@ -20,7 +20,7 @@
       url={{
         'https://raw.githubusercontent.com/cheretbe/mikrotik-scripts/' ~ 
         (ms_install_branch | default('master')) ~ 
-        '/cloudflare-dns/' ~ _ms_install_script.source | community.routeros.quote_argument_value
+        '/' ~ ms_install_script_name ~ '/' ~ _ms_install_script.source | community.routeros.quote_argument_value
       }}
       as-value=yes output=user
   when: (not _ms_script_is_present|bool) or _ms_install_script.overwrite
