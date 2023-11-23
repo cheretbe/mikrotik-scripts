@@ -97,7 +97,8 @@ Vagrant.configure("2") do |config|
       SHELL
 
     if ENV.has_key?("AO_VAGRANT_APT_PROXY")
-      isp1.vm.provision "shell", path: "../setup_apt_cache.sh", keep_color: true,
+      isp1.vm.provision "shell", name: "Set local apt proxy",
+        path: "../setup_apt_cache.sh", keep_color: true,
         args: ENV["AO_VAGRANT_APT_PROXY"]
     end
 
@@ -128,7 +129,8 @@ Vagrant.configure("2") do |config|
       SHELL
 
     if ENV.has_key?("AO_VAGRANT_APT_PROXY")
-      isp2.vm.provision "shell", path: "../setup_apt_cache.sh", keep_color: true,
+      isp2.vm.provision "shell", name: "Set local apt proxy",
+        path: "../setup_apt_cache.sh", keep_color: true,
         args: ENV["AO_VAGRANT_APT_PROXY"]
     end
 
