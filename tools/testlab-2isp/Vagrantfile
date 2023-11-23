@@ -96,6 +96,11 @@ Vagrant.configure("2") do |config|
         systemctl restart sshd
       SHELL
 
+    if ENV.has_key?("AO_VAGRANT_APT_PROXY")
+      isp1.vm.provision "shell", path: "../setup_apt_cache.sh", keep_color: true,
+        args: ENV["AO_VAGRANT_APT_PROXY"]
+    end
+
     ansible_provision isp1,
       playbook="isp_provision.yml",
       extra_vars: {
@@ -122,6 +127,11 @@ Vagrant.configure("2") do |config|
         systemctl restart sshd
       SHELL
 
+    if ENV.has_key?("AO_VAGRANT_APT_PROXY")
+      isp2.vm.provision "shell", path: "../setup_apt_cache.sh", keep_color: true,
+        args: ENV["AO_VAGRANT_APT_PROXY"]
+    end
+
     ansible_provision isp2,
       playbook="isp_provision.yml",
       extra_vars: {
@@ -138,7 +148,7 @@ Vagrant.configure("2") do |config|
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp1", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-isp2", auto_config: false
     router.vm.network "private_network", virtualbox__intnet: "vagrant-intnet", auto_config: false
-    config.vm.network "forwarded_port", guest: 8728, host: 8728
+    router.vm.network "forwarded_port", guest: 8728, host: 8728
 
     router.vm.provision "routeros_command", name: "Run provision script",
       command: 'global vmNICMACs; '\
