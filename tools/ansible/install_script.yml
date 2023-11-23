@@ -96,7 +96,7 @@
 
           # RouterOS 7.9beta2 adds posibility to directly create a file:
           # /file add name=my_file
-          # But as long we support ROS 7 we stick with the following hack:
+          # But as long we support ROS 6 we stick with the following hack:
           #   /system license print file=my_file
           #   /file set [find name="my_file.txt"] contents="new contents"
           # The idea is that we print just anything to a file (and it's being created),
