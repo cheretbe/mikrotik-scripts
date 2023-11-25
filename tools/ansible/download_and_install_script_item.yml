@@ -1,18 +1,17 @@
 ---
 
-- name: Query installed script object
+- name: Query existing script object
   community.routeros.api:
     path: system script
-    query: ".id name WHERE name == {{ _ms_install_script.name }}"
-  register: __ms_installed_script
+    query: ".id name source WHERE name == {{ _ms_install_script.name }}"
+  register: __ms_existing_script
 
-- name: Check if script already exists
+- name: Get existing script content
   ansible.builtin.set_fact:
-    _ms_script_is_present: "{{ (__ms_installed_script.msg | json_query(_ms_script_selection_query) | length) != 0 }}"
-  vars:
-    _ms_script_selection_query: "[?name=='{{ _ms_install_script.name }}']"
+    _ms_existing_script_content: |
+      {{ __ms_existing_script.msg[0].source if __ms_existing_script.msg[0].source is defined else false }}
 
-- name: Download script contents
+- name: Download script content
   community.routeros.api:
     path: tool
     cmd: >-
@@ -23,22 +22,36 @@
         '/' ~ ms_install_script_name ~ '/' ~ _ms_install_script.source | community.routeros.quote_argument_value
       }}
       as-value=yes output=user
-  when: (not _ms_script_is_present|bool) or _ms_install_script.overwrite
+  when: _ms_install_script.source is defined
   register:
-    __ms_script_content
+    __ms_downloaded_script_content
 
-- name: Delete existing script object in overwrite mode
-  community.routeros.api:
-    path: system script
-    remove: "{{ __ms_installed_script.msg[0]['.id'] }}"
-  when: _ms_script_is_present|bool and _ms_install_script.overwrite
+- name: Set downloaded script content
+  ansible.builtin.set_fact:
+    _ms_script_content: "{{ __ms_downloaded_script_content.msg | json_query(_ms_content_selection_query) }}"
+  vars:
+    _ms_content_selection_query: "[?status=='finished'].data|[0]"
+  when: _ms_install_script.source is defined
+
+- name: Directly set script content
+  ansible.builtin.set_fact:
+    _ms_script_content: "{{ _ms_install_script.content }}"
+  when: _ms_install_script.content is defined
 
 - name: Create script object
   community.routeros.api:
     path: system script
     cmd: >-
-      add name={{ _ms_install_script.name }}
-      source={{ __ms_script_content.msg | json_query(_ms_content_selection_query) | community.routeros.quote_argument_value }}
-  vars:
-    _ms_content_selection_query: "[?status=='finished'].data|[0]"
-  when: (not _ms_script_is_present|bool) or _ms_install_script.overwrite
+      add name={{ _ms_install_script.name }} source=""
+  when: not _ms_existing_script_content
+
+- name: Set script content
+  community.routeros.api_find_and_modify:
+    path: system script
+    find:
+      name: "{{ _ms_install_script.name }}"
+    values:
+      source: "{{ _ms_script_content }}"
+  when: |
+    ((not _ms_existing_script_content) or _ms_install_script.overwrite) and
+    (_ms_existing_script_content != _ms_script_content)

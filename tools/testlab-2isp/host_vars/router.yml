@@ -5,3 +5,9 @@ ansible_network_os: community.routeros.routeros
 mikrotik_api_password: vagrant
 mikrotik_host_name: localhost
 mikrotik_use_tls: false
+
+ms_actual_script_settings:
+  failoverWan1PingSrcAddress: '"172.19.10.1"'
+  failoverWan2PingSrcAddress: '"172.19.10.2"'
+  # failoverPingTargets: ""
+  failoverRecoverCount: 5

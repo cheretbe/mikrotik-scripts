@@ -78,6 +78,26 @@
             loop_var: _ms_install_file
             label: "{{ _ms_install_file.source }}"
 
+        - name: Generate example settings script content
+          ansible.builtin.include_tasks:
+            file: generate_script_settings.yml
+
+        - name: Add comment to example settings script
+          ansible.builtin.set_fact:
+            _ms_default_settings_script_content: |
+              # https://github.com/cheretbe/mikrotik-scripts/blob/master/{{ ms_install_script_name }}/README.md
+
+              {{ _ms_settings_script_content }}
+
+        - name: Install example settings script
+          ansible.builtin.include_tasks:
+            file: download_and_install_script_item.yml
+          vars:
+            _ms_install_script:
+              content: "{{ _ms_default_settings_script_content }}"
+              name: "{{ ms_install_script_name }}_settings"
+              overwrite: false
+
         - name: Download an install scripts
           ansible.builtin.include_tasks:
             file: download_and_install_script_item.yml
@@ -112,6 +132,13 @@
           community.routeros.api:
             path: file
             query: ".id name WHERE name == {{ _ms_install_dst_path }}/git_commit_sha.txt"
+          # The file might not be ready right away on slow devices.
+          # When it's not ready, msg contains a string like that:
+          # msg:
+          #   - no results for 'file 'query' .id name WHERE name == scripts/failover/git_commit_sha.txt
+          # So we wait for the query to return a dictionary
+          retries: 3
+          until: __ms_installed_version_file.msg[0] is mapping
           register: __ms_installed_version_file
 
         - name: Write installed version commit

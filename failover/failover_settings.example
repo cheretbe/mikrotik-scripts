@@ -1,5 +1,0 @@
-# Failover script settings
-# https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md#configuration-options
-
-#:global failoverWan1PingSrcAddress 172.19.10.1
-#:global failoverWan2PingSrcAddress 172.19.10.2

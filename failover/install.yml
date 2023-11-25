@@ -5,9 +5,6 @@ ms_install:
     - source: failover_check.rsc
       dst: failover_check.rsc
   scripts:
-    - source: failover_settings.example
-      name: failover_settings
-      overwrite: false
     - source: failover_on_up_down.example
       name: failover_on_up_down
       overwrite: false
@@ -19,3 +16,44 @@ ms_install:
       disabled: true
       on_event: |
         /import file=scripts/failover/failover_check.rsc
+  settings:
+    - name: failoverWan1PingSrcAddress
+      mandatory: true
+      default_value: '"172.19.10.1"'
+    - name: failoverWan2PingSrcAddress
+      mandatory: true
+      default_value: '"172.19.10.2"'
+  # Optional settings
+    - name: failoverSwitchRoutes
+      mandatory: false
+      default_value: "false"
+    - name: failoverPreferWan2
+      mandatory: false
+      default_value: "false"
+    - name: failoverWan1DefaultRoute
+      mandatory: false
+      default_value: '[/ip route find dst-address=0.0.0.0/0 and gateway="wan" and !routing-mark]'
+    - name: failoverWan2DefaultRoute
+      mandatory: false
+      default_value: '[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.7.6 and !routing-mark]'
+    - name: failoverPingTargets
+      mandatory: false
+      default_value: '{"1.1.1.1"; "1.0.0.1"; "8.8.8.8"; "8.8.4.4"; "77.88.8.8"; "77.88.8.1"}'
+    - name: failoverPingTries
+      mandatory: false
+      default_value: "5"
+    - name: failoverMinPingReplies
+      mandatory: false
+      default_value: "2"
+    - name: failoverMaxFailedHosts
+      mandatory: false
+      default_value: "2"
+    - name: failoverRecoverCount
+      mandatory: false
+      default_value: "30"
+    - name: failoverWan1PingTimeout
+      mandatory: false
+      default_value: "(:totime 00:00:00.500)"
+    - name: failoverWan2PingTimeout
+      mandatory: false
+      default_value: "(:totime 00:00:00.500)"

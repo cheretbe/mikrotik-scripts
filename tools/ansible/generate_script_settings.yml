@@ -1,0 +1,38 @@
+---
+
+- name: Set mandatory settings comment
+  ansible.builtin.set_fact:
+    _ms_settings_script_content: "# Mandatory settings\n"
+
+- name: Set mandatory settings
+  ansible.builtin.set_fact:
+    _ms_settings_script_content: |
+      {{ _ms_settings_script_content}}
+      {%- if ms_actual_script_settings is defined %}
+      {# Here we intentionally use [] notation instead of .get() to fail on missing values #}
+      :global {{ _ms_install_setting.name }} {{ ms_actual_script_settings[_ms_install_setting.name] }}
+      {%- else %}
+      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value }}
+      {% endif %}
+  loop: "{{ ms_install.settings | selectattr('mandatory', 'true') }}"
+  loop_control:
+    loop_var: _ms_install_setting
+    label: "{{ _ms_install_setting.name }}"
+
+- name: Set optional settings comment
+  ansible.builtin.set_fact:
+    _ms_settings_script_content: "{{ _ms_settings_script_content }}\n# Optional settings\n"
+
+- name: Set optional settings
+  ansible.builtin.set_fact:
+    _ms_settings_script_content: |
+      {{ _ms_settings_script_content}}
+      {%- if (ms_actual_script_settings is defined) and (ms_actual_script_settings.get(_ms_install_setting.name) is not none) %}
+      :global {{ _ms_install_setting.name }} {{ ms_actual_script_settings[_ms_install_setting.name] }}
+      {%- else %}
+      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value }}
+      {% endif %}
+  loop: "{{ ms_install.settings | selectattr('mandatory', 'false') }}"
+  loop_control:
+    loop_var: _ms_install_setting
+    label: "{{ _ms_install_setting.name }}"
