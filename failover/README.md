@@ -1,11 +1,11 @@
 ### Maintenance
 
 ```
-:put [/file get failover/version.txt contents]
+:put [/file get scripts/failover/git_commit_sha.txt contents]
 /log print where (topics="script;warning" or topics="script;info") and message~"Failover"
 
-:set failoverWan1PrevState 0
-:set failoverWan2PrevState 0
+:global failoverWan1PrevState -1
+:global failoverWan2PrevState -1
 ```
 
 #### Installation

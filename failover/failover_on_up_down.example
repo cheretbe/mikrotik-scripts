@@ -1,2 +1,28 @@
 # Place custom route up/down handler here
 # https://github.com/cheretbe/mikrotik-scripts/blob/master/failover/README.md
+
+:global failoverWan1IsUp
+:global failoverWan2IsUp
+
+# :log info ("failoverWan1IsUp: " . $failoverWan1IsUp)
+# :log info ("failoverWan2IsUp: " . $failoverWan2IsUp)
+
+# :local ipToClearConnections
+
+# # This will work for static addresses only
+# if ($failoverWan1IsUp and !$failoverWan2IsUp) do={
+#   :log info "Failover script: Clearing wan2 connections"
+#   :set ipToClearConnections [/ip address get [find interface="wan2"] address]
+# } else={
+#   if (!$failoverWan1IsUp) do={
+#     :log info "Failover script: Clearing wan1 connections"
+#     :set ipToClearConnections [/ip address get [find interface="wan1"] address]
+#   }
+# }
+
+# if ([:typeof $ipToClearConnections] != "nothing") do={
+#   # Remove netmask part
+#   :set ipToClearConnections [:pick $ipToClearConnections 0 [:find $ipToClearConnections "/"]]
+#   # TODO: check if this works for NAT connections
+#   /ip firewall connection remove [/ip firewall connection find reply-dst-address=$ipToClearConnections]
+# }
