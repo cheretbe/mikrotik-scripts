@@ -16,6 +16,20 @@
 ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l router -e "ms_install_script_name=failover"
 ```
 
+Ansible-managed settings example:
+```json
+ms_failover_script_settings:
+  failoverWan1PingSrcAddress: '"172.19.10.1"'
+  failoverWan2PingSrcAddress: '"172.19.10.2"'
+  # failoverPingTargets: ""
+  failoverRecoverCount: 5
+```
+
+```shell
+# Apply settings
+ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/update_settings.yml -l router -e "ms_install_script_name=failover"
+```
+
 #### Configuration options
 
 ```
