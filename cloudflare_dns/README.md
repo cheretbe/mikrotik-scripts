@@ -9,23 +9,31 @@
 ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare_dns"
 
 # Apply host settings from inventory (see example below)
-ansible-playbook ~/projects/mikrotik-scripts/cloudflare_dns/update_settings.yml -l host.domain.tld
+ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/update_settings.yml -l router -e "ms_install_script_name=cloudflare_dns"
 ```
 
-Inventory host settings example
+Ansible-managed settings example:
 ```yaml
-mt_cloudflare_api_email: user@domain.tld
-mt_cloudflare_api_token: token_value
-
-mt_cloudflare_dns:
-  - interface: wan1
-    records:
-      - {name: "host-1.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
-      - {name: "host-2.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
-  - interface: wan2
-    records:
-      - {name: "host-1.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
-      - {name: "host-2.domain.tld", zoneid: "000000000000", recordid: "000000000000", ttl: 60}
+ms_cloudflare_dns_script_settings:
+  cfdnsAPIAuthEmail: user@domain.tld
+  cfdnsAPIAuthKey: "000000"
+  cfdnsMappings: |
+    {
+      {
+        interface="wan1";
+        records={
+          {name="host1.domain.tld"; zoneid="000000"; recordid="111"; ttl=60};
+          {name="host2.domain.tld"; zoneid="000000"; recordid="222"; ttl=60}
+        }
+      };
+      {
+        interface="wan2";
+        records={
+          {name="host3.domain.tld"; zoneid="000000"; recordid="333"; ttl=60};
+          {name="host4.domain.tld"; zoneid="000000"; recordid="444"; ttl=60}
+        }
+      }
+    }
 ```
 
 Debugging

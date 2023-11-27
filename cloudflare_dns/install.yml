@@ -6,10 +6,7 @@ ms_install:
       dst: cloudflare_dns_check.rsc
     - source: README.md
       dst: README.md
-  scripts:
-    - source: cloudflare_dns_settings.example
-      name: cloudflare_dns_settings
-      overwrite: false
+  scripts: []
   scheduled_tasks:
     - name: Cloudflare DNS check
       start_date: "jan/01/1970"
@@ -18,3 +15,29 @@ ms_install:
       disabled: true
       on_event: |
         /import file=scripts/cloudflare_dns/cloudflare_dns_check.rsc
+  settings:
+    - name: cfdnsAPIAuthEmail
+      mandatory: true
+      default_value: '"user@domain.tld"'
+    - name: cfdnsAPIAuthKey
+      mandatory: true
+      default_value: '"000000000000000"'
+    - name: cfdnsMappings
+      mandatory: true
+      default_value: |
+        {
+          {
+            interface="wan1";
+            records={
+              {name="host1.domain.tld"; zoneid="000000"; recordid="111"; ttl=60};
+              {name="host2.domain.tld"; zoneid="000000"; recordid="222"; ttl=60}
+            }
+          };
+          {
+            interface="wan2";
+            records={
+              {name="host3.domain.tld"; zoneid="000000"; recordid="333"; ttl=60};
+              {name="host4.domain.tld"; zoneid="000000"; recordid="444"; ttl=60}
+            }
+          }
+        }

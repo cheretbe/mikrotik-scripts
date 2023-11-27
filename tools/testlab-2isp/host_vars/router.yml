@@ -11,3 +11,24 @@ ms_failover_script_settings:
   failoverWan2PingSrcAddress: '"172.19.10.2"'
   # failoverPingTargets: ""
   failoverRecoverCount: 5
+
+ms_cloudflare_dns_script_settings:
+  cfdnsAPIAuthEmail: user1@domain.tld
+  cfdnsAPIAuthKey: "000000"
+  cfdnsMappings: |
+    {
+      {
+        interface="wan1";
+        records={
+          {name="host1.domain.tld"; zoneid="000000"; recordid="111"; ttl=60};
+          {name="host2.domain.tld"; zoneid="000000"; recordid="222"; ttl=60}
+        }
+      };
+      {
+        interface="wan2";
+        records={
+          {name="host3.domain.tld"; zoneid="000000"; recordid="333"; ttl=60};
+          {name="host4.domain.tld"; zoneid="000000"; recordid="444"; ttl=60}
+        }
+      }
+    }
