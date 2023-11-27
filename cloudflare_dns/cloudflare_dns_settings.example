@@ -1,4 +1,4 @@
-# https://github.com/cheretbe/mikrotik-scripts/blob/master/cloudflare-dns/README.md
+# https://github.com/cheretbe/mikrotik-scripts/blob/master/cloudflare_dns/README.md
 
 :put "WARNING: Using default template for 'cloudflare_dns_settins' script. Change parameters here"
 :log warning ("Using default template for 'cloudflare_dns_settins' script. Change parameters here")

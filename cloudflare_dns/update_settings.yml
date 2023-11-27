@@ -1,6 +1,6 @@
 ---
 
-- name: Update cloudflare-dns script settings
+- name: Update cloudflare_dns script settings
   hosts: "{{ ansible_limit | default(omit) }}"
   gather_facts: false
   module_defaults:
@@ -26,7 +26,7 @@
         that:
           - __ms_settings_script.msg[0].name is defined
         quiet: true
-        fail_msg: cloudflare_dns_settings script is missing. Refer to cloudflare-dns/README.md for installation instructions.
+        fail_msg: cloudflare_dns_settings script is missing. Refer to cloudflare_dns/README.md for installation instructions.
 
     - name: Generate settings script
       ansible.builtin.set_fact:

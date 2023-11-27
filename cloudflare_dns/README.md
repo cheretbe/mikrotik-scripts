@@ -6,10 +6,10 @@
 ```shell
 # For 'develop' branch
 # -e ms_install_branch=develop
-ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare-dns"
+ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l all -e "ms_install_script_name=cloudflare_dns"
 
 # Apply host settings from inventory (see example below)
-ansible-playbook ~/projects/mikrotik-scripts/cloudflare-dns/update_settings.yml -l host.domain.tld
+ansible-playbook ~/projects/mikrotik-scripts/cloudflare_dns/update_settings.yml -l host.domain.tld
 ```
 
 Inventory host settings example

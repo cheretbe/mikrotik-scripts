@@ -1,7 +1,7 @@
 # Do not change this script
 # Settings are in 'cloudflare_dns_settings' script ("System" > "Scripts" in WinBox
 # or '/system script edit value-name=source cloudflare_dns_settings' in console)
-# https://github.com/cheretbe/mikrotik-scripts/blob/master/cloudflare-dns/README.md
+# https://github.com/cheretbe/mikrotik-scripts/blob/master/cloudflare_dns/README.md
 
 :local LogDebugMsg do={
   :log debug ("Cloudflare DNS script: " . $debugMsg)

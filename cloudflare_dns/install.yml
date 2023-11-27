@@ -17,4 +17,4 @@ ms_install:
       interval: 1m
       disabled: true
       on_event: |
-        /import file=scripts/cloudflare-dns/cloudflare_dns_check.rsc
+        /import file=scripts/cloudflare_dns/cloudflare_dns_check.rsc
