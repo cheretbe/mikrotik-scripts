@@ -12,7 +12,7 @@
       {# Here we intentionally use [] notation instead of .get() to fail on missing values #}
       :global {{ _ms_install_setting.name }} {{ ms_actual_script_settings[_ms_install_setting.name] }}
       {%- else %}
-      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value }}
+      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value | ms_comment_multiline_string() }}
       {% endif %}
   loop: "{{ ms_install.settings | selectattr('mandatory', 'true') }}"
   loop_control:
@@ -30,7 +30,7 @@
       {%- if (ms_actual_script_settings is defined) and (ms_actual_script_settings.get(_ms_install_setting.name) is not none) %}
       :global {{ _ms_install_setting.name }} {{ ms_actual_script_settings[_ms_install_setting.name] }}
       {%- else %}
-      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value }}
+      # :global {{ _ms_install_setting.name }} {{ _ms_install_setting.default_value | ms_comment_multiline_string() }}
       {% endif %}
   loop: "{{ ms_install.settings | selectattr('mandatory', 'false') }}"
   loop_control:
