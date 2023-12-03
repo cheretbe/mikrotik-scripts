@@ -6,7 +6,7 @@
 ```shell
 # For 'develop' branch
 # -e ms_install_branch=develop
-ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l router -e "ms_install_script_name=cloudflare_dns"
+ansible-playbook ~/projects/mikrotik-scripts/cloudflare_dns/install.yml -l router
 
 # Apply host settings from inventory (see example below)
 ansible-playbook ~/projects/mikrotik-scripts/cloudflare_dns/update_settings.yml -l router

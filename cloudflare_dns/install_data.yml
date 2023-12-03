@@ -4,8 +4,6 @@ ms_install:
   files:
     - source: cloudflare_dns_check.rsc
       dst: cloudflare_dns_check.rsc
-    - source: README.md
-      dst: README.md
   scripts: []
   scheduled_tasks:
     - name: Cloudflare DNS check

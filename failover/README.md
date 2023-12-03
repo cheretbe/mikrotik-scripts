@@ -13,7 +13,7 @@
 ```shell
 # For 'develop' branch
 # -e ms_install_branch=develop
-ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/install_script.yml -l router -e "ms_install_script_name=failover"
+ansible-playbook ~/projects/mikrotik-scripts/failover/install.yml -l router
 ```
 
 Ansible-managed settings example:
