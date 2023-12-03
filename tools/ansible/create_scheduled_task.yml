@@ -21,6 +21,6 @@
       start-time={{ _ms_install_scheduled_task.start_time }}
       interval={{ _ms_install_scheduled_task.interval }}
       disabled={{ 'yes' if _ms_install_scheduled_task.disabled else 'no' }}
-      on-event={{ _ms_install_scheduled_task.on_event | community.routeros.quote_argument_value }}
+      on-event={{ ('/import file=' + _ms_install_dst_path + '/' + _ms_install_scheduled_task.on_event_script) | community.routeros.quote_argument_value }}
   when: not _ms_scheduled_task_is_present|bool
 

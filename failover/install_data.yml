@@ -14,8 +14,7 @@ ms_install:
       start_time: "00:00:00"
       interval: 1m
       disabled: true
-      on_event: |
-        /import file=scripts/failover/failover_check.rsc
+      on_event_script: failover_check.rsc
   settings:
     - name: failoverWan1PingSrcAddress
       mandatory: true

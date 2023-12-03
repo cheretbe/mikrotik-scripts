@@ -11,8 +11,7 @@ ms_install:
       start_time: "00:00:00"
       interval: 1m
       disabled: true
-      on_event: |
-        /import file=scripts/cloudflare_dns/cloudflare_dns_check.rsc
+      on_event_script: cloudflare_dns_check.rsc
   settings:
     - name: cfdnsAPIAuthEmail
       mandatory: true
