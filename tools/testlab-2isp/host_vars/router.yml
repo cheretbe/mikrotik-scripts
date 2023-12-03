@@ -13,8 +13,8 @@ ms_failover_script_settings:
   failoverRecoverCount: 5
 
 ms_cloudflare_dns_script_settings:
-  cfdnsAPIAuthEmail: user1@domain.tld
-  cfdnsAPIAuthKey: "000000"
+  cfdnsAPIAuthEmail: '"user1@domain.tld"'
+  cfdnsAPIAuthKey: '"000000"'
   cfdnsMappings: |
     {
       {
