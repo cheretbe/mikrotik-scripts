@@ -39,3 +39,7 @@ ms_install:
             }
           }
         }
+  # Optional settings
+    - name: cfdnsForcedCheckInterval
+      mandatory: false
+      default_value: '(:totime "15m")'
