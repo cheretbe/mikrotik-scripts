@@ -25,7 +25,7 @@
 
     - name: Include script installation settings
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../{{ ms_install_script_name }}/install.yml"
+        file: "{{ playbook_dir }}/../../{{ ms_install_script_name }}/install_data.yml"
 
     - name: Generate settings script content
       ansible.builtin.include_tasks:
