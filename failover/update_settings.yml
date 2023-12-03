@@ -1,0 +1,6 @@
+---
+
+- name: Update failover script settings
+  ansible.builtin.import_playbook: ../tools/ansible/update_script_settings.yml
+  vars:
+    ms_install_script_name: failover

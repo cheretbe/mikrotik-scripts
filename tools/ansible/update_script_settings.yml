@@ -1,5 +1,9 @@
 ---
 
+# This is made as a playbook, not as a list of task to include with 'include_tasks'
+# module only because of 'ms_comment_multiline_string' custom filter plugin usage.
+# https://docs.ansible.com/ansible/latest/plugins/filter.html#enabling-filter-plugins
+
 - name: Update script settings
   hosts: "{{ ansible_limit | default(omit) }}"
   gather_facts: false

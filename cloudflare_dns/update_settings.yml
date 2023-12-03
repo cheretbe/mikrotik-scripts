@@ -1,0 +1,6 @@
+---
+
+- name: Update cloudflare_dns script settings
+  ansible.builtin.import_playbook: ../tools/ansible/update_script_settings.yml
+  vars:
+    ms_install_script_name: cloudflare_dns

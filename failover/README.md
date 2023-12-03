@@ -27,7 +27,7 @@ ms_failover_script_settings:
 
 ```shell
 # Apply settings
-ansible-playbook ~/projects/mikrotik-scripts/tools/ansible/update_settings.yml -l router -e "ms_install_script_name=failover"
+ansible-playbook ~/projects/mikrotik-scripts/failover/update_settings.yml -l router
 ```
 
 #### Configuration options
