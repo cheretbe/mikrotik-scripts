@@ -1,0 +1,53 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+      - echo "Examples:"
+      - echo "  task test"
+      - echo "  (verbose output)"
+      - echo "  task test -- -s"
+    silent: true
+
+  prepare-venv:
+    desc: Prepare virtual environment for tests
+    internal: true
+    silent: true
+    cmds:
+      - python3 -m venv ~/.cache/venv/mikrotik-failover-test
+      - |
+        . ~/.cache/venv/mikrotik-failover-test/bin/activate || :
+        pip install --upgrade pip;
+        pip install wheel;
+        pip install -r requirements.txt;
+
+  run-vagrant-up:
+    desc: Run vagrant up in tools/testlab-2isp
+    internal: true
+    dir: ../tools/testlab-2isp
+    cmds:
+      - vagrant up
+
+  run-vagrant-destroy:
+    desc: Run vagrant destroy in tools/testlab-2isp
+    internal: true
+    dir: ../tools/testlab-2isp
+    cmds:
+      - vagrant destroy -f
+
+  test:
+    desc: Run tests
+    cmds:
+      - task: prepare-venv
+      - task: run-vagrant-up
+      - ~/.cache/venv/mikrotik-failover-test/bin/pytest tests -x -v
+      - task: run-vagrant-destroy
+
+  test-no-destroy:
+    desc: Run tests without destroying the test lab (for debugging)
+    cmds:
+      - task: prepare-venv
+      - task: run-vagrant-up
+      - ~/.cache/venv/mikrotik-failover-test/bin/pytest tests -x -v

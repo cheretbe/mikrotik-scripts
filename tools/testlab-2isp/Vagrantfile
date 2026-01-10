@@ -78,7 +78,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define :isp1 do |isp1|
-    isp1.vm.box = "ubuntu/xenial64"
+    isp1.vm.box = "bento/debian-13"
     isp1.vm.hostname = "isp1"
     isp1.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--groups", "/__vagrant"]
@@ -110,7 +110,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define :isp2 do |isp2|
-    isp2.vm.box = "ubuntu/xenial64"
+    isp2.vm.box = "bento/debian-13"
     isp2.vm.hostname = "isp2"
     isp2.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--groups", "/__vagrant"]
@@ -142,7 +142,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define :"router" do |router|
-    router.vm.box = "cheretbe/routeros"
+    router.vm.box = "cheretbe/routeros7"
     router.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--groups", "/__vagrant"]
     end

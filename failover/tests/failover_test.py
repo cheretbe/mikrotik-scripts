@@ -17,9 +17,9 @@ class failover_UnitTests(unittest.TestCase):
         default_settings = {
             "failoverWan1PingSrcAddress": "172.19.10.1",
             "failoverWan2PingSrcAddress": "172.19.10.2",
-            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
-            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]",
-            "failoverPingTargets": "{ 1.1.1.1 }",
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main]",
+            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main]",
+            "failoverPingTargets": "{ 5.255.255.242 }",
             "failoverWan1PingTimeout": "(:totime 00:00:00.055)",
             "failoverWan2PingTimeout": "(:totime 00:00:00.055)",
             "failoverPingTries": "1",
@@ -49,10 +49,8 @@ class failover_UnitTests(unittest.TestCase):
 
     def upload_helper_functions(self):
         print("Creating 'failover' directory")
-        # There is no direct way to create a directory. This is an ugly hack
-        # https://forum.mikrotik.com/viewtopic.php?t=139071
         subprocess.check_call(("vagrant", "ssh", "router", "--",
-            '/tool fetch dst-path="/failover/dummy" url="http://127.0.0.1:80/" keep-result=no'),
+            'if ([:len [/file find where name="failover" and type="directory"]] = 0) do={ file add name=/failover type=directory }'),
             cwd=vagrant_path
         )
 
@@ -79,8 +77,8 @@ class failover_UnitTests(unittest.TestCase):
             "/system script add name=failover_on_up_down source=\":global failoverWan1IsUp\\r\\",
                 "\\n:global failoverWan2IsUp\\r\\",
                 "\\n:put (\\\"test_up_down: failoverWan1IsUp=\\$failoverWan1IsUp; failoverWan2IsUp=\\$failoverWan2IsUp\\\")\\r\\",
-                "\\n:put (\\\"test_up_down: wan1_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance])\\r\\",
-                "\\n:put (\\\"test_up_down: wan2_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance])\""
+                "\\n:put (\\\"test_up_down: wan1_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main] distance])\\r\\",
+                "\\n:put (\\\"test_up_down: wan2_distance=\\\" . [/ip route get [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main] distance])\""
         )
         with open(self.temp_settings_file, "w") as f:
             for line in functions_definition:
@@ -107,7 +105,8 @@ class failover_UnitTests(unittest.TestCase):
             print(line)
         return output.decode("utf-8").splitlines()
 
-    def setup_class(cls):
+    @classmethod
+    def setUpClass(cls):
         # cls.longMessage = False
         vm_is_running = False
         output = subprocess.check_output("vagrant status router --machine-readable", shell=True, cwd=vagrant_path)
@@ -134,9 +133,10 @@ class failover_UnitTests(unittest.TestCase):
             failover_script_path, "router:failover/"))
 
 
-    def teardown_class(self):
-        os.remove(self.temp_settings_file)
-        os.remove(self.vagrant_ssh_config)
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(cls.temp_settings_file)
+        os.remove(cls.vagrant_ssh_config)
 
     def assertSubstringIn(self, first, second):
         if not any(first in array_item for array_item in second):
@@ -181,7 +181,7 @@ class failover_UnitTests(unittest.TestCase):
             "failoverWan1PingSrcAddress": "172.19.10.1",
             "failoverWan2PingSrcAddress": "172.19.10.2",
             "failoverSwitchRoutes": "true",
-            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]"
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main]"
         })
         output = self.run_failover_script()
         self.assertIn("ERROR: Invalid failoverWan2DefaultRoute value (len=0)", output)
@@ -192,8 +192,8 @@ class failover_UnitTests(unittest.TestCase):
             "failoverWan1PingSrcAddress": "172.19.10.1",
             "failoverWan2PingSrcAddress": "172.19.10.2",
             "failoverSwitchRoutes": "true",
-            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
-            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]"
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main]",
+            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main]"
         })
         output = self.run_failover_script()
         self.assertIn("Settings have been loaded successfully", output)
@@ -233,8 +233,8 @@ class failover_UnitTests(unittest.TestCase):
             "failoverWan2PingSrcAddress": "172.19.10.2",
             "failoverSwitchRoutes": "true",
             "failoverPreferWan2": "true",
-            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark]",
-            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark]",
+            "failoverWan1DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main]",
+            "failoverWan2DefaultRoute": "[/ip route find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main]",
             "failoverWan1PingTimeout": "(:totime 00:00:00.055)",
             "failoverWan2PingTimeout": "(:totime 00:00:00.075)",
             "failoverPingTargets": "{\\\"1.1.1.1\\\"; \\\"8.8.4.4\\\"}",
@@ -541,8 +541,8 @@ class failover_UnitTests(unittest.TestCase):
             "failoverSwitchRoutes": "true",
             "failoverPreferWan2": "true"
         })
-        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance=10")
-        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance=5")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main] distance=10")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main] distance=5")
         # Initial state: wan2 route is active, successful pings, no route switching
         output = self.run_failover_script()
         self.assertIn("wan1 test results [failed/threshold/total]: 0/1/1", output)
@@ -660,8 +660,8 @@ class failover_UnitTests(unittest.TestCase):
         # Restore normal operation
         run_ros_command("'$TestEnableInterface ifName=\"wan1\" pingSrcAddr=\"172.19.10.1\"'")
         # Restore default route distances
-        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and !routing-mark] distance=5")
-        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and !routing-mark] distance=10")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.120.10 and routing-table=main] distance=5")
+        run_ros_command("/ip route set [find dst-address=0.0.0.0/0 and gateway=192.168.121.10 and routing-table=main] distance=10")
 
     def test_script_version(self):
         # It should display current script version

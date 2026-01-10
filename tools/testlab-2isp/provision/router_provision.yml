@@ -66,14 +66,29 @@
           - {interface: loopback-force-wan1, address: "172.19.10.1/32" }
           - {interface: loopback-force-wan2, address: "172.19.10.2/32" }
 
+    - name: Add routing tables
+      community.routeros.api_modify:
+        path: routing table
+        # [!] Using YAML dictionary for data with fib=true causes duplicate entries
+        data:
+          - "name=wan1 fib="
+          - "name=wan2 fib="
+
     - name: Add routes
       community.routeros.api_modify:
         path: ip route
         data:
           - {distance: 5,  gateway: "192.168.120.10" }
           - {distance: 10, gateway: "192.168.121.10" }
-          - {distance: 30, gateway: "192.168.120.10", routing-mark: wan1, comment: "Force wan1" }
-          - {distance: 30, gateway: "192.168.121.10", routing-mark: wan2, comment: "Force wan2" }
+          - {distance: 30, gateway: "192.168.120.10", routing-table: wan1, comment: "Force wan1" }
+          - {distance: 30, gateway: "192.168.121.10", routing-table: wan2, comment: "Force wan2" }
+
+    - name: Add routing rules
+      community.routeros.api_modify:
+        path: routing rule
+        data:
+          - {action: lookup-only-in-table, routing-mark: wan1, table: wan1}
+          - {action: lookup-only-in-table, routing-mark: wan2, table: wan2}
 
     - name: Add firewall mangle rules
       community.routeros.api_modify:
